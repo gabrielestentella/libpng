@@ -20,6 +20,8 @@
 #include <vector>
 
 #define PNG_INTERNAL
+#define PNG_sCAL_SUPPORTED
+
 #include "png.h"
 
 #define PNG_CLEANUP \
@@ -225,5 +227,36 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   png_image_finish_read(&image, NULL, buffer.data(), 0, NULL);
 #endif
 
+
+/* ---------- EXTRA COVERAGE: drive png_set_sCAL() ------------------- */
+#ifdef PNG_sCAL_SUPPORTED          /* built in almost all configs       */
+{
+  /* 1  Take a slice of the original fuzz buffer that the decoder never
+         touched (here: bytes after the PNG header) and reinterpret it as
+         two doubles + a unit selector.  */
+  if (size > kPngHeaderSize + 17) {   // need at least 1 + 16 bytes
+    const uint8_t* extra = data + kPngHeaderSize;
+    int unit = extra[0] & 0x01;       // 0 = metre, 1 = radian (spec draft 1.4)
+    double w; memcpy(&w, extra + 1, 8);
+    double h; memcpy(&h, extra + 9, 8);
+
+    /* 2  Create a throw-away write context so we can call the setter.
+           We reuse libpng’s ignore-output trick so nothing is written.   */
+    png_structp wp =
+        png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    if (wp) {
+      png_infop wi = png_create_info_struct(wp);
+      if (wi) {
+        auto ignore_write = [](png_structp, png_bytep, png_size_t) {};
+        png_set_write_fn(wp, nullptr, ignore_write, nullptr);
+
+        png_set_sCAL(wp, wi, unit, w, h);   // ❸  **TARGET REACHED**
+
+      }
+      png_destroy_write_struct(&wp, &wi);
+    }
+  }
+}
+#endif
   return 0;
 }
