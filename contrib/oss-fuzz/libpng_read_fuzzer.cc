@@ -151,6 +151,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     PNG_CLEANUP
     return 0;
   }
+  
+  /* ------------ EXTRA COVERAGE: palette index validation ------------- */
+  /* This enables the run-time check guarded by
+    #ifdef PNG_CHECK_FOR_INVALID_INDEX_SUPPORTED in pngtrans.c          */
+  png_set_check_for_invalid_index(png_ptr, /*allowed=*/1);
+
 
   // Reading.
   png_read_info(png_handler.png_ptr, png_handler.info_ptr);
