@@ -207,6 +207,18 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
                    static_cast<png_bytep>(png_handler.row_ptr), nullptr);
     }
   }
+    // After reading image info and possibly png_read_end:
+  if (png_get_valid(png_handler.png_ptr, png_handler.info_ptr, PNG_INFO_tEXt)) {
+    png_textp text_ptr;
+    int num_text;
+    png_get_text(png_handler.png_ptr, png_handler.info_ptr, &text_ptr, &num_text); // retrieve tEXt chunks
+  }
+  if (png_get_valid(png_handler.png_ptr, png_handler.info_ptr, PNG_INFO_PLTE)) {
+    png_colorp palette;
+    int num_palette;
+    png_get_PLTE(png_handler.png_ptr, png_handler.info_ptr, &palette, &num_palette); // retrieve palette data
+  }
+  // ...similar for other chunks like iCCP, sCAL, etc.
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
@@ -225,38 +237,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   image.format = PNG_FORMAT_RGBA;
   std::vector<png_byte> buffer(PNG_IMAGE_SIZE(image));
   png_image_finish_read(&image, NULL, buffer.data(), 0, NULL);
-#endif
-
-
-/* ---------- EXTRA COVERAGE: drive png_set_sCAL() ------------------- */
-#ifdef PNG_sCAL_SUPPORTED          /* built in almost all configs       */
-{
-  /* 1  Take a slice of the original fuzz buffer that the decoder never
-         touched (here: bytes after the PNG header) and reinterpret it as
-         two doubles + a unit selector.  */
-  if (size > kPngHeaderSize + 17) {   // need at least 1 + 16 bytes
-    const uint8_t* extra = data + kPngHeaderSize;
-    int unit = extra[0] & 0x01;       // 0 = metre, 1 = radian (spec draft 1.4)
-    double w; memcpy(&w, extra + 1, 8);
-    double h; memcpy(&h, extra + 9, 8);
-
-    /* 2  Create a throw-away write context so we can call the setter.
-           We reuse libpng’s ignore-output trick so nothing is written.   */
-    png_structp wp =
-        png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-    if (wp) {
-      png_infop wi = png_create_info_struct(wp);
-      if (wi) {
-        auto ignore_write = [](png_structp, png_bytep, png_size_t) {};
-        png_set_write_fn(wp, nullptr, ignore_write, nullptr);
-
-        png_set_sCAL(wp, wi, unit, w, h);   // ❸  **TARGET REACHED**
-
-      }
-      png_destroy_write_struct(&wp, &wi);
-    }
-  }
-}
 #endif
   return 0;
 }
