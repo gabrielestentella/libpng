@@ -11,7 +11,7 @@
 
 // === *** NEW *** helper that injects one application‑defined ancillary chunk ===
 #ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
-static void static void AddUnknownChunk(png_structp png_ptr, png_infop info_ptr,
+static void AddUnknownChunk(png_structp png_ptr, png_infop info_ptr,
                             const uint8_t *data, size_t size) {
   if (size < 8) return;                 // need 4‑byte name + ≥4‑byte payload
   png_unknown_chunk unk{};
