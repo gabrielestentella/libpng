@@ -207,16 +207,28 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
                    static_cast<png_bytep>(png_handler.row_ptr), nullptr);
     }
   }
-    // After reading image info and possibly png_read_end:
-  if (png_get_valid(png_handler.png_ptr, png_handler.info_ptr, PNG_INFO_tEXt)) {
-    png_textp text_ptr;
-    int num_text;
-    png_get_text(png_handler.png_ptr, png_handler.info_ptr, &text_ptr, &num_text); // retrieve tEXt chunks
+  
+  // After reading image info and possibly png_read_end:
+  png_textp text_ptr;
+  int num_text;
+
+  png_get_text(png_handler.png_ptr, png_handler.info_ptr, &text_ptr, &num_text);
+  for (int i = 0; i < num_text; i++) {
+    (void)text_ptr[i].key;
+    (void)text_ptr[i].text;
   }
+
   if (png_get_valid(png_handler.png_ptr, png_handler.info_ptr, PNG_INFO_PLTE)) {
     png_colorp palette;
     int num_palette;
     png_get_PLTE(png_handler.png_ptr, png_handler.info_ptr, &palette, &num_palette); // retrieve palette data
+    // Loop over each entry to drive coverage
+    for (int i = 0; i < num_palette; ++i) {
+      // Touch each color component:
+      (void)palette[i].red;    // Access red byte
+      (void)palette[i].green;  // Access green byte
+      (void)palette[i].blue;   // Access blue byte
+    }
   }
   // ...similar for other chunks like iCCP, sCAL, etc.
 
