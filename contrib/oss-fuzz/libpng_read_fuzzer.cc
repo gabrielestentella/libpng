@@ -22,16 +22,14 @@
 #define PNG_INTERNAL
 #include "png.h"
 
-// Define PNG_PACKSWAP for our fuzzer
+// Define PNG_PACKSWAP for our fuzzer if it's not already defined
 #ifndef PNG_PACKSWAP
 #define PNG_PACKSWAP 0x1000
 #endif
 
-// Declare the private functions we need as extern
+// Only declare functions that aren't already defined as macros
 extern "C" {
   extern int png_handle_as_unknown(png_const_structrp png_ptr, png_const_bytep tag);
-  extern png_uint_32 png_get_uint_32(png_const_bytep buf);
-  extern png_uint_16 png_get_uint_16(png_const_bytep buf);
   
 #ifdef PNG_READ_INTERLACING_SUPPORTED
   extern void png_do_read_interlace(png_row_infop row_info, png_bytep row, 
@@ -219,35 +217,29 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
-  // Improve coverage of pngrutil.c functions
-  // Create buffers for testing the integer conversion functions
-  png_byte buf_32_1[4];
-  png_byte buf_32_2[4];
-  png_byte buf_16[2];
-
-  // Fill with some bytes from the fuzzed data if available
+  // Test integer parsing from buffers - these are macros in OSS-FUZZ
+  // so we don't need extern declarations
   if (size >= kPngHeaderSize + 4) {
+    png_byte buf_32_1[4];
+    png_byte buf_32_2[4];
+    png_byte buf_16[2];
+
     memcpy(buf_32_1, data + kPngHeaderSize, 4);
     memcpy(buf_32_2, data + kPngHeaderSize, 4);
     memcpy(buf_16, data + kPngHeaderSize, 2);
     
-    // Call the integer conversion functions
-    png_get_uint_32(buf_32_1);
-    png_get_int_32(buf_32_2);
-    png_get_uint_16(buf_16);
+    // Call the integer conversion functions - these are macros in the OSS-FUZZ environment
+    volatile png_uint_32 val32 = png_get_uint_32(buf_32_1);
+    volatile png_int_32 val32s = png_get_int_32(buf_32_2);
+    volatile png_uint_16 val16 = png_get_uint_16(buf_16);
     
-    // Test png_cache_unknown_chunk function - use png_set_keep_unknown_chunks instead
+    // Test unknown chunk handling with public API
     if (png_handler.png_ptr) {
-      // Use proper API functions instead of direct calls to internal functions
-      // Create a custom unknown chunk for testing
       png_byte chunk_name[5] = "zTXt";  // Using a known ancillary chunk type
       
       // Set unknown chunk handling with public API
       png_set_keep_unknown_chunks(png_handler.png_ptr, PNG_HANDLE_CHUNK_ALWAYS, 
                                   chunk_name, 1);
-      
-      // The rest of the unknown chunk testing can be done via proper APIs
-      // during normal PNG reading which already happened above
     }
   }
 
