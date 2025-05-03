@@ -221,19 +221,26 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     
     // Test png_cache_unknown_chunk function
     if (png_handler.png_ptr) {
-      // Create a custom "unknown" chunk name
-      png_handler.png_ptr->chunk_name = PNG_CHUNK_FROM_STRING("zzzz");
+      // Create a custom unknown chunk for testing
+      png_byte chunk_name[5] = "zTXt";  // Using a known ancillary chunk type
       
       png_uint_32 chunk_length = size - kPngHeaderSize > 256 ? 
                                256 : size - kPngHeaderSize;
-                               
-      // Call png_cache_unknown_chunk with some reasonable length
-      // This will allocate memory for the unknown chunk data and read it
-      if (png_cache_unknown_chunk(png_handler.png_ptr, chunk_length)) {
-        // If successful, the unknown chunk data will be in png_ptr->unknown_chunk.data
-        if (png_handler.png_ptr->unknown_chunk.data != NULL) {
-          png_free(png_handler.png_ptr, png_handler.png_ptr->unknown_chunk.data);
-          png_handler.png_ptr->unknown_chunk.data = NULL;
+      
+      // Create a buffer for the chunk data
+      png_byte* chunk_data = NULL;
+      if (chunk_length > 0) {
+        chunk_data = (png_byte*)png_malloc(png_handler.png_ptr, chunk_length);
+        if (chunk_data) {
+          // Fill with some data from the fuzzed input
+          memcpy(chunk_data, data + kPngHeaderSize, chunk_length);
+          
+          // Process the unknown chunk using the public API
+          png_handle_unknown(png_handler.png_ptr, png_handler.info_ptr, 
+                            chunk_data, chunk_length);
+          
+          // Free the allocated memory
+          png_free(png_handler.png_ptr, chunk_data);
         }
       }
     }
