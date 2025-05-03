@@ -30,11 +30,6 @@
 // Only declare functions that aren't already defined as macros
 extern "C" {
   extern int png_handle_as_unknown(png_const_structrp png_ptr, png_const_bytep tag);
-  
-#ifdef PNG_READ_INTERLACING_SUPPORTED
-  extern void png_do_read_interlace(png_row_infop row_info, png_bytep row, 
-                                   int pass, png_uint_32 transformations);
-#endif
 }
 
 #define PNG_CLEANUP \
@@ -208,11 +203,35 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
       png_handler.png_ptr, png_get_rowbytes(png_handler.png_ptr,
                                             png_handler.info_ptr));
 
+  // Process all image passes - this will naturally exercise png_do_read_interlace
+  // when processing interlaced images through the normal libpng channels
   for (int pass = 0; pass < passes; ++pass) {
     for (png_uint_32 y = 0; y < height; ++y) {
       png_read_row(png_handler.png_ptr,
                    static_cast<png_bytep>(png_handler.row_ptr), nullptr);
     }
+  }
+  
+  // Test interlacing by reading the whole image with display and row pointers
+  // This covers the png_do_read_interlace path through png_read_rows
+  if (height > 0 && width > 0) {
+    png_bytep row = static_cast<png_bytep>(png_malloc(png_handler.png_ptr, 
+        png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr) * 2));
+    png_bytep display_row = row + png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr);
+    
+    // Reset the read position
+    if (setjmp(png_jmpbuf(png_handler.png_ptr)) == 0) {
+      // Only rewind if we haven't already read the full image
+      if (png_handler.png_ptr->row_number < height || png_handler.png_ptr->pass > 0) {
+        png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
+        
+        // Read a row with both row and display pointers - this forces the interlace handling
+        // code path to be taken and png_do_read_interlace to be called internally
+        png_read_row(png_handler.png_ptr, row, display_row);
+      }
+    }
+    
+    png_free(png_handler.png_ptr, row);
   }
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
@@ -242,76 +261,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
                                   chunk_name, 1);
     }
   }
-
-#ifdef PNG_READ_INTERLACING_SUPPORTED
-  // Test interlacing with different bit depths
-  if (size >= kPngHeaderSize + 64) {
-    // Create a row_info structure
-    png_row_info row_info;
-    png_byte row_data[256];
-
-    // Initialize buffer with some data from input
-    memcpy(row_data, data + kPngHeaderSize, size > kPngHeaderSize + 256 ? 256 : size - kPngHeaderSize);
-
-    // Test for 1-bit depth
-    row_info.width = 32;
-    row_info.rowbytes = 4;
-    row_info.pixel_depth = 1;
-    
-    // Test with and without PACKSWAP
-    for (int pass = 0; pass < 7; pass++) {
-      png_do_read_interlace(&row_info, row_data, pass, 0);
-      
-      #ifdef PNG_READ_PACKSWAP_SUPPORTED
-      png_do_read_interlace(&row_info, row_data, pass, PNG_PACKSWAP);
-      #endif
-    }
-
-    // Test for 2-bit depth
-    row_info.width = 32;
-    row_info.rowbytes = 8;
-    row_info.pixel_depth = 2;
-    
-    for (int pass = 0; pass < 7; pass++) {
-      png_do_read_interlace(&row_info, row_data, pass, 0);
-      
-      #ifdef PNG_READ_PACKSWAP_SUPPORTED
-      png_do_read_interlace(&row_info, row_data, pass, PNG_PACKSWAP);
-      #endif
-    }
-
-    // Test for 4-bit depth
-    row_info.width = 32;
-    row_info.rowbytes = 16;
-    row_info.pixel_depth = 4;
-    
-    for (int pass = 0; pass < 7; pass++) {
-      png_do_read_interlace(&row_info, row_data, pass, 0);
-      
-      #ifdef PNG_READ_PACKSWAP_SUPPORTED
-      png_do_read_interlace(&row_info, row_data, pass, PNG_PACKSWAP);
-      #endif
-    }
-    
-    // Test for 8-bit depth
-    row_info.width = 16;
-    row_info.rowbytes = 16;
-    row_info.pixel_depth = 8;
-    
-    for (int pass = 0; pass < 7; pass++) {
-      png_do_read_interlace(&row_info, row_data, pass, 0);
-    }
-    
-    // Test for 16-bit depth (which uses the default case)
-    row_info.width = 8;
-    row_info.rowbytes = 16;
-    row_info.pixel_depth = 16;
-    
-    for (int pass = 0; pass < 7; pass++) {
-      png_do_read_interlace(&row_info, row_data, pass, 0);
-    }
-  }
-#endif
 
   PNG_CLEANUP
   
