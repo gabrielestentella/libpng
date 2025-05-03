@@ -202,6 +202,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
+  png_get_uint_32();
+
   PNG_CLEANUP
 
 #ifdef PNG_SIMPLIFIED_READ_SUPPORTED
