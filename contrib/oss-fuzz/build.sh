@@ -27,7 +27,6 @@ cat scripts/pnglibconf.dfa | \
   # 1. keep stdio + warnings off just like the old script
   sed -e 's/option STDIO/option STDIO disabled/' \
       -e 's/option WARNING /option WARNING disabled/' \
-  # 2. GUARANTEE full encoder + helper functions are on
       -e 's/^option WRITE.*/option WRITE enables WRITE_INT_FUNCTIONS/' \
 > scripts/pnglibconf.dfa.temp
 mv scripts/pnglibconf.dfa.temp scripts/pnglibconf.dfa
