@@ -221,13 +221,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     
     // Reset the read position
     if (setjmp(png_jmpbuf(png_handler.png_ptr)) == 0) {
-      // Only rewind if we haven't already read the full image
-      if (png_handler.png_ptr->row_number < height || png_handler.png_ptr->pass > 0) {
-        png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
-        
-        // Read a row with both row and display pointers - this forces the interlace handling
-        // code path to be taken and png_do_read_interlace to be called internally
-        png_read_row(png_handler.png_ptr, row, display_row);
+      // Instead of checking internal fields which we can't access,
+      // simply reset the png read state
+      png_set_interlace_handling(png_handler.png_ptr);
+      png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
+      
+      // Start over with a new image
+      for (png_uint_32 y = 0; y < height; ++y) {
+        png_read_row(png_handler.png_ptr, display_row, row);
       }
     }
     
