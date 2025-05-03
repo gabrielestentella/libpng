@@ -21,13 +21,14 @@
 # 2. Disabled WARNING and WRITE options in pnglibconf.dfa.
 # 3. Build zlib alongside libpng
 ################################################################################
-export CPPFLAGS="${CPPFLAGS:-} -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED"
+
 # Disable logging via library build configuration control.
 cat scripts/pnglibconf.dfa | \
-  sed -e "s/option STDIO/option STDIO disabled/" \
-      -e "s/option WRITE[[:space:]].*/option WRITE/" \
-      -e 's/option WRITE disabled/option WRITE enables WRITE_INT_FUNCTIONS/' \
-      -e "s/option WARNING /option WARNING disabled/" \
+  # 1. keep stdio + warnings off just like the old script
+  sed -e 's/option STDIO/option STDIO disabled/' \
+      -e 's/option WARNING /option WARNING disabled/' \
+  # 2. GUARANTEE full encoder + helper functions are on
+      -e 's/^option WRITE.*/option WRITE enables WRITE_INT_FUNCTIONS/' \
 > scripts/pnglibconf.dfa.temp
 mv scripts/pnglibconf.dfa.temp scripts/pnglibconf.dfa
 
@@ -38,7 +39,7 @@ make -j$(nproc) clean
 make -j$(nproc) libpng16.la
 
 # build libpng_write_fuzzer.
-$CXX $CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED \
+$CXX $CXXFLAGS \
      -std=c++11 -I. \
      $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
