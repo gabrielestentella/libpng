@@ -21,12 +21,12 @@
 # 2. Disabled WARNING and WRITE options in pnglibconf.dfa.
 # 3. Build zlib alongside libpng
 ################################################################################
-export CPPFLAGS="${CPPFLAGS:-} -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED"
+
 # Disable logging via library build configuration control.
 cat scripts/pnglibconf.dfa | \
   sed -e "s/option STDIO/option STDIO disabled/" \
-      -e "s/option WRITE[[:space:]].*/option WRITE/" \
       -e "s/option WARNING /option WARNING disabled/" \
+      -e "s/option WRITE enables WRITE_INT_FUNCTIONS/option WRITE disabled/" \
 > scripts/pnglibconf.dfa.temp
 mv scripts/pnglibconf.dfa.temp scripts/pnglibconf.dfa
 
@@ -36,15 +36,15 @@ autoreconf -f -i
 make -j$(nproc) clean
 make -j$(nproc) libpng16.la
 
-# build libpng_write_fuzzer.
-$CXX "$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED" -std=c++11 -I. \
-     $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
-     -o $OUT/libpng_write_fuzzer \
+# build libpng_read_fuzzer.
+$CXX $CXXFLAGS -std=c++11 -I. \
+     $SRC/libpng/contrib/oss-fuzz/libpng_read_fuzzer.cc \
+     -o $OUT/libpng_read_fuzzer \
      -lFuzzingEngine .libs/libpng16.a -lz
 
 # add seed corpus.
 find $SRC/libpng -name "*.png" | grep -v crashers | \
-     xargs zip $OUT/libpng_write_fuzzer_seed_corpus.zip
+     xargs zip $OUT/libpng_read_fuzzer_seed_corpus.zip
 
 cp $SRC/libpng/contrib/oss-fuzz/*.dict \
      $SRC/libpng/contrib/oss-fuzz/*.options $OUT/
