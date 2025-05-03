@@ -2,7 +2,7 @@
 // This version adds: unknown‑chunk emission, PLTE/tRNS, tIME, larger IHDR, and random transform flags.
 // Sections marked with "// *** NEW ***" are the main additions.
 
-#include <png.h>
+#include "png.h"
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
