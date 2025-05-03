@@ -202,10 +202,113 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
-  png_get_uint_32();
+  // Improve coverage of pngrutil.c functions
+  // Create buffers for testing the integer conversion functions
+  png_byte buf_32_1[4];
+  png_byte buf_32_2[4];
+  png_byte buf_16[2];
+
+  // Fill with some bytes from the fuzzed data if available
+  if (size >= kPngHeaderSize + 4) {
+    memcpy(buf_32_1, data + kPngHeaderSize, 4);
+    memcpy(buf_32_2, data + kPngHeaderSize, 4);
+    memcpy(buf_16, data + kPngHeaderSize, 2);
+    
+    // Call the integer conversion functions
+    png_get_uint_32(buf_32_1);
+    png_get_int_32(buf_32_2);
+    png_get_uint_16(buf_16);
+    
+    // Test png_cache_unknown_chunk function
+    if (png_handler.png_ptr) {
+      // Create a custom "unknown" chunk name
+      png_handler.png_ptr->chunk_name = PNG_CHUNK_FROM_STRING("zzzz");
+      
+      png_uint_32 chunk_length = size - kPngHeaderSize > 256 ? 
+                               256 : size - kPngHeaderSize;
+                               
+      // Call png_cache_unknown_chunk with some reasonable length
+      // This will allocate memory for the unknown chunk data and read it
+      if (png_cache_unknown_chunk(png_handler.png_ptr, chunk_length)) {
+        // If successful, the unknown chunk data will be in png_ptr->unknown_chunk.data
+        if (png_handler.png_ptr->unknown_chunk.data != NULL) {
+          png_free(png_handler.png_ptr, png_handler.png_ptr->unknown_chunk.data);
+          png_handler.png_ptr->unknown_chunk.data = NULL;
+        }
+      }
+    }
+  }
+
+  // Test png_do_read_interlace function with different bit depths
+  if (size >= kPngHeaderSize + 64) {
+    // Create a row_info structure
+    png_row_info row_info;
+    png_byte row_data[256];
+
+    // Initialize buffer with some data from input
+    memcpy(row_data, data + kPngHeaderSize, size > kPngHeaderSize + 256 ? 256 : size - kPngHeaderSize);
+
+    // Test for 1-bit depth
+    row_info.width = 32;
+    row_info.rowbytes = 4;
+    row_info.pixel_depth = 1;
+    
+    // Test with and without PACKSWAP
+    for (int pass = 0; pass < 7; pass++) {
+      png_do_read_interlace(&row_info, row_data, pass, 0);
+      
+      #ifdef PNG_READ_PACKSWAP_SUPPORTED
+      png_do_read_interlace(&row_info, row_data, pass, PNG_PACKSWAP);
+      #endif
+    }
+
+    // Test for 2-bit depth
+    row_info.width = 32;
+    row_info.rowbytes = 8;
+    row_info.pixel_depth = 2;
+    
+    for (int pass = 0; pass < 7; pass++) {
+      png_do_read_interlace(&row_info, row_data, pass, 0);
+      
+      #ifdef PNG_READ_PACKSWAP_SUPPORTED
+      png_do_read_interlace(&row_info, row_data, pass, PNG_PACKSWAP);
+      #endif
+    }
+
+    // Test for 4-bit depth
+    row_info.width = 32;
+    row_info.rowbytes = 16;
+    row_info.pixel_depth = 4;
+    
+    for (int pass = 0; pass < 7; pass++) {
+      png_do_read_interlace(&row_info, row_data, pass, 0);
+      
+      #ifdef PNG_READ_PACKSWAP_SUPPORTED
+      png_do_read_interlace(&row_info, row_data, pass, PNG_PACKSWAP);
+      #endif
+    }
+    
+    // Test for 8-bit depth
+    row_info.width = 16;
+    row_info.rowbytes = 16;
+    row_info.pixel_depth = 8;
+    
+    for (int pass = 0; pass < 7; pass++) {
+      png_do_read_interlace(&row_info, row_data, pass, 0);
+    }
+    
+    // Test for 16-bit depth (which uses the default case)
+    row_info.width = 8;
+    row_info.rowbytes = 16;
+    row_info.pixel_depth = 16;
+    
+    for (int pass = 0; pass < 7; pass++) {
+      png_do_read_interlace(&row_info, row_data, pass, 0);
+    }
+  }
 
   PNG_CLEANUP
-
+  
 #ifdef PNG_SIMPLIFIED_READ_SUPPORTED
   // Simplified READ API
   png_image image;
