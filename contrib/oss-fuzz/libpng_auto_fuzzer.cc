@@ -63,10 +63,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
   png_infop info_ptr = png_create_info_struct(png_ptr);
   if (!info_ptr) { png_destroy_write_struct(&png_ptr, nullptr); return 0; }
 
-  if (setjmp(png_jmpbuf(png_ptr))) { png_destroy_write_struct(&png_ptr, &info_ptr); return 0; }
-
   // write to memory buffer
   struct OutBuf { png_bytep buf; png_size_t size; } ob{nullptr, 0};
+
+  if (setjmp(png_jmpbuf(png_ptr))) { png_destroy_write_struct(&png_ptr, &info_ptr); return 0; }
+  
   auto write_fn = [](png_structp png_ptr, png_bytep data, png_size_t length) {
     OutBuf *ob = static_cast<OutBuf *>(png_get_io_ptr(png_ptr));
     png_bytep newbuf = static_cast<png_bytep>(realloc(ob->buf, ob->size + length));
