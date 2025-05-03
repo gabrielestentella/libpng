@@ -37,7 +37,8 @@ make -j$(nproc) clean
 make -j$(nproc) libpng16.la
 
 # build libpng_write_fuzzer.
-$CXX "$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED" -std=c++11 -I. \
+$CXX $CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED \
+     -std=c++11 -I. \
      $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
      -lFuzzingEngine .libs/libpng16.a -lz
