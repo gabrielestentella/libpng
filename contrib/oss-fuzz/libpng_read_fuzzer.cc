@@ -231,8 +231,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         png_read_row(png_handler.png_ptr, display_row, row);
       }
     }
-    
-    png_free(png_handler.png_ptr, row);
   }
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
