@@ -26,6 +26,7 @@ export CPPFLAGS="${CPPFLAGS:-} -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_
 cat scripts/pnglibconf.dfa | \
   sed -e "s/option STDIO/option STDIO disabled/" \
       -e "s/option WRITE[[:space:]].*/option WRITE/" \
+      -e 's/option WRITE disabled/option WRITE enables WRITE_INT_FUNCTIONS/' \
       -e "s/option WARNING /option WARNING disabled/" \
 > scripts/pnglibconf.dfa.temp
 mv scripts/pnglibconf.dfa.temp scripts/pnglibconf.dfa
