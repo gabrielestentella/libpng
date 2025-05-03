@@ -22,17 +22,6 @@ static void AddUnknownChunk(png_structp png_ptr, png_infop info_ptr,
   unk.location = PNG_HAVE_IHDR;         // write before PLTE / IDAT
   png_set_unknown_chunks(png_ptr, info_ptr, &unk, 1);
   png_set_unknown_chunk_location(png_ptr, info_ptr, 0, PNG_HAVE_IHDR);
-};
-  memcpy(unk.name, data, 4);            // first 4 bytes become chunk name
-  unk.size = static_cast<png_uint_32>(size - 4);
-  // copy payload into writable memory (libpng expects modifiable buffer)
-  png_bytep payload = static_cast<png_bytep>(malloc(unk.size));
-  if (!payload) return;
-  memcpy(payload, data + 4, unk.size);
-  unk.data = payload;
-  unk.location = PNG_HAVE_IHDR;         // before PLTE / IDAT
-  png_set_unknown_chunks(png_ptr, info_ptr, &unk, 1);
-  png_set_unknown_chunk_location(png_ptr, info_ptr, 0, PNG_HAVE_IHDR);
 }
 #else  // PNG_SET_UNKNOWN_CHUNKS_SUPPORTED not available – dummy function
 static void AddUnknownChunk(png_structp, png_infop, const uint8_t *, size_t) {}
