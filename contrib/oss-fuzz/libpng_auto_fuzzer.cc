@@ -8,12 +8,21 @@
 #include <string.h>
 #include <time.h>
 
+
 // === *** NEW *** helper that injects one application‑defined ancillary chunk ===
 #ifdef PNG_SET_UNKNOWN_CHUNKS_SUPPORTED
-static void AddUnknownChunk(png_structp png_ptr, png_infop info_ptr,
+static void static void AddUnknownChunk(png_structp png_ptr, png_infop info_ptr,
                             const uint8_t *data, size_t size) {
   if (size < 8) return;                 // need 4‑byte name + ≥4‑byte payload
   png_unknown_chunk unk{};
+  memcpy(unk.name, data, 4);            // chunk name (must be ASCII A‑Z/0‑9 but fuzz is fine)
+  unk.size = static_cast<png_uint_32>(size - 4);
+  // **No malloc** – point directly into the fuzzing buffer (valid during this call)
+  unk.data = const_cast<png_byte *>(data + 4);
+  unk.location = PNG_HAVE_IHDR;         // write before PLTE / IDAT
+  png_set_unknown_chunks(png_ptr, info_ptr, &unk, 1);
+  png_set_unknown_chunk_location(png_ptr, info_ptr, 0, PNG_HAVE_IHDR);
+};
   memcpy(unk.name, data, 4);            // first 4 bytes become chunk name
   unk.size = static_cast<png_uint_32>(size - 4);
   // copy payload into writable memory (libpng expects modifiable buffer)
