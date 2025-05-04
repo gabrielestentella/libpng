@@ -18,11 +18,18 @@
 #include <string.h>
 
 #include <vector>
+#include <unistd.h>   // mkstemp, unlink
+#include <fcntl.h>
+#include <stdio.h>
 
 #define PNG_INTERNAL
 #define PNG_sCAL_SUPPORTED
 
 #include "png.h"
+
+// Forward decls from pngcp.c
+extern "C" int cpng(int argc, char **argv);
+extern "C" int cp_one_file(const char *in_name, const char *out_name);
 
 #define PNG_CLEANUP \
   if(png_handler.png_ptr) \
@@ -68,6 +75,32 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   }
   //free image memory
   png_image_free(&image);
+
+  //PNG CPY SECTION
+
+  //write the fuzz‑generated PNG to a temp input file
+  char in_template[]  = "./tmp/pngcp_in_XXXXXX";
+  int  infd = mkstemp(in_template);
+  if (infd < 0) { free(out_buf); return 0; }
+  write(infd, out_buf, out_size);
+  close(infd);
+
+  //second temp name will be the output file created by pngcp
+  char out_template[] = "./tmp/pngcp_out_XXXXXX";
+  int  outfd = mkstemp(out_template);   //just reserves the path
+  close(outfd);                         //cp_one_file will re‑create
+  unlink(out_template);                 //remove placeholder
+
+  //call cp_one_file directly 
+  cp_one_file(in_template, out_template);
+
+  //call general cpng
+  char *argv_cp[3] = { (char*)"pngcp", in_template, out_template };
+  cpng(3, argv_cp);
+
+  // tidy up
+  unlink(in_template);
+  unlink(out_template);
   free(out_buf);
   return 0;
 }
