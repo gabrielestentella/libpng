@@ -39,11 +39,21 @@ make -j$(nproc) clean
 make -j$(nproc) libpng16.la
 
 # build libpng_write_fuzzer.
+# 1. compile pngcp.c with the C compiler (no C++ mangling)
+$CC $CFLAGS -I. -c $SRC/libpng/contrib/tools/pngcp.c -o $WORK/pngcp.o
+# 2. build+link the fuzzer *and* that object with clang++
 $CXX $CXXFLAGS -std=c++11 -I. \
-     -xc $SRC/libpng/contrib/tools/pngcp.c -x c++ \
+     $WORK/pngcp.o \
      $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
-     -lFuzzingEngine .libs/libpng16.a -lz
+     .libs/libpng16.a -lz -lFuzzingEngine
+
+# build libpng_write_fuzzer.
+#$CXX $CXXFLAGS -std=c++11 -I. \
+#     -xc $SRC/libpng/contrib/tools/pngcp.c -x c++ \
+#     $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
+#     -o $OUT/libpng_write_fuzzer \
+#     -lFuzzingEngine .libs/libpng16.a -lz
 
 # add seed corpus.
 find $SRC/libpng -name "*.png" | grep -v crashers | \
