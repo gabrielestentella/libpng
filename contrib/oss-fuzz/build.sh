@@ -38,11 +38,17 @@ autoreconf -f -i
 make -j$(nproc) clean
 make -j$(nproc) libpng16.la
 
+sed -i 's/static void cp_one_file/void cp_one_file/' \
+       $SRC/libpng/contrib/tools/pngcp.c
+sed -i 's/static int  cpng/int cpng/' \
+       $SRC/libpng/contrib/tools/pngcp.c
+
 # build libpng_write_fuzzer.
 # 1. compile pngcp.c with the C compiler (no C++ mangling)
-#$CC $CFLAGS -I. -c $SRC/libpng/contrib/tools/pngcp.c -o $WORK/pngcp.o
+$CC $CFLAGS -I. -c $SRC/libpng/contrib/tools/pngcp.c -o $WORK/pngcp.o
 # 2. build+link the fuzzer *and* that object with clang++
 $CXX $CXXFLAGS -std=c++11 -I. \
+     $WORK/pngcp.o \
      $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
      .libs/libpng16.a -lz -lFuzzingEngine
