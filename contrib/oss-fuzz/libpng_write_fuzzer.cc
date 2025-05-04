@@ -1,16 +1,10 @@
-// libpng_read_fuzzer.cc
-// Copyright 2017-2018 Glenn Randers-Pehrson
-// Copyright 2015 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that may
-// be found in the LICENSE file https://cs.chromium.org/chromium/src/LICENSE
+#define static                 /* remove 'static' so symbols are extern */
+#define main  pngcp_main      /* rename its main() to pngcp_main()      */
+#include "contrib/tools/pngcp.c"
+#undef main
+#undef static
 
-// The modifications in 2017 by Glenn Randers-Pehrson include
-// 1. addition of a PNG_CLEANUP macro,
-// 2. setting the option to ignore ADLER32 checksums,
-// 3. adding "#include <string.h>" which is needed on some platforms
-//    to provide memcpy().
-// 4. adding read_end_info() and creating an end_info structure.
-// 5. adding calls to png_set_*() transforms commonly used by browsers.
+extern "C" int pngcp_main(int argc, char** argv);
 
 #include <stddef.h>
 #include <stdint.h>
@@ -26,14 +20,6 @@
 #define PNG_sCAL_SUPPORTED
 
 #include "png.h"
-
-// Forward decls from pngcp.c
-/* ---------- bring in pngcp.c but make its 'static' functions global ---- */
-#define static        /* drop the storage‑class specifier               */
-#define main pngcp_main   /* avoid duplicate symbol ‘main’               */
-#include "contrib/tools/pngcp.c"
-#undef static
-/* ---------------------------------------------------------------------- */
 
 extern "C" int cpng(int argc, char **argv);
 extern "C" int cp_one_file(const char *in_name, const char *out_name);
@@ -99,7 +85,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   unlink(out_template);                 //remove placeholder
 
   //call cp_one_file directly 
-  cp_one_file(in_template, out_template);
+  char *argv_cp[] = { (char*)"pngcp", in_template, out_template };
+  pngcp_main(3, argv_cp);
 
   //call general cpng
   char *argv_cp[3] = { (char*)"pngcp", in_template, out_template };
