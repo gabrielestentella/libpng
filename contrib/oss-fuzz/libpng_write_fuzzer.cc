@@ -4,7 +4,7 @@
 #undef main
 #undef static
 
-extern "C" int pngcp_main(int argc, char** argv);
+int pngcp_main(int argc, char** argv);
 
 #include <stddef.h>
 #include <stdint.h>
@@ -87,6 +87,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   //call cp_one_file directly 
   char *argv_cp[] = { (char*)"pngcp", in_template, out_template };
   pngcp_main(3, argv_cp);
+
+  //call general cpng
+  char *argv_cp[3] = { (char*)"pngcp", in_template, out_template };
+  cpng(3, argv_cp);
 
   // tidy up
   unlink(in_template);
