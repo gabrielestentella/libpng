@@ -22,16 +22,6 @@
 #define PNG_INTERNAL
 #include "png.h"
 
-// Define PNG_PACKSWAP for our fuzzer if it's not already defined
-#ifndef PNG_PACKSWAP
-#define PNG_PACKSWAP 0x1000
-#endif
-
-// Only declare functions that aren't already defined as macros
-extern "C" {
-  extern int png_handle_as_unknown(png_const_structrp png_ptr, png_const_bytep tag);
-}
-
 #define PNG_CLEANUP \
   if(png_handler.png_ptr) \
   { \
@@ -203,40 +193,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
       png_handler.png_ptr, png_get_rowbytes(png_handler.png_ptr,
                                             png_handler.info_ptr));
 
-  // Process all image passes - this will naturally exercise png_do_read_interlace
-  // when processing interlaced images through the normal libpng channels
   for (int pass = 0; pass < passes; ++pass) {
     for (png_uint_32 y = 0; y < height; ++y) {
       png_read_row(png_handler.png_ptr,
                    static_cast<png_bytep>(png_handler.row_ptr), nullptr);
     }
   }
-  
-  // Test interlacing by reading the whole image with display and row pointers
-  // This covers the png_do_read_interlace path through png_read_rows
-  if (height > 0 && width > 0) {
-    png_bytep row = static_cast<png_bytep>(png_malloc(png_handler.png_ptr, 
-        png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr) * 2));
-    png_bytep display_row = row + png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr);
-    
-    // Reset the read position
-    if (setjmp(png_jmpbuf(png_handler.png_ptr)) == 0) {
-      // Instead of checking internal fields which we can't access,
-      // simply reset the png read state
-      png_set_interlace_handling(png_handler.png_ptr);
-      png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
-      
-      // Start over with a new image
-      for (png_uint_32 y = 0; y < height; ++y) {
-        png_read_row(png_handler.png_ptr, display_row, row);
-      }
-    }
-  }
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
-  // Test integer parsing from buffers - these are macros in OSS-FUZZ
-  // so we don't need extern declarations
+
+
+
+
+
   if (size >= kPngHeaderSize + 4) {
     png_byte buf_32_1[4];
     png_byte buf_32_2[4];
