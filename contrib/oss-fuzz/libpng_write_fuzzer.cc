@@ -89,8 +89,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   pngcp_main(3, argv_cp);
 
   //call general cpng
-  char *argv_cp[3] = { (char*)"pngcp", in_template, out_template };
-  cpng(3, argv_cp);
+  char *argv_cp2[3] = { (char*)"pngcp", in_template, out_template };
+  cpng(3, argv_cp2);
 
   // tidy up
   unlink(in_template);
