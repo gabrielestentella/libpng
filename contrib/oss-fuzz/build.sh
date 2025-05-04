@@ -22,9 +22,8 @@
 # 3. Build zlib alongside libpng
 ################################################################################
 
-export CXXFLAGS="$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED 
-                         -DPNG_SIMPLIFIED_WRITE_SUPPORTED \
-                         -DPNG_SET_UNKNOWN_CHUNKS_SUPPORTED=1"
+export CXXFLAGS="$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED"
+
 
 # Disable logging via library build configuration control.
 cat scripts/pnglibconf.dfa | \
@@ -41,7 +40,7 @@ make -j$(nproc) libpng16.la
 
 # build libpng_write_fuzzer.
 $CXX $CXXFLAGS -std=c++11 -I. \
-     $SRC/libpng/contrib/oss-fuzz/libpng_auto_fuzzer.cc \
+     $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
      -lFuzzingEngine .libs/libpng16.a -lz
 

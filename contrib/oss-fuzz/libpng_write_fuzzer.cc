@@ -44,11 +44,11 @@
   }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  if (size < 5) return 0; // need at least a few bytes for dimensions
+  if (size < 5) return 0; //at least a few bytes for dimensions
   png_image image;
   memset(&image, 0, sizeof(image));
   image.version = PNG_IMAGE_VERSION;
-  //use first bytes to construct small width/height to avoid huge allocs
+  //use first bytes to construct small width/height
   image.width = data[0] + 1;
   image.height = data[1] + 1;
   int colormode = data[2] % 3;
