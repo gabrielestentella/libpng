@@ -21,9 +21,6 @@ int pngcp_main(int argc, char** argv);
 
 #include "png.h"
 
-extern "C" int cpng(int argc, char **argv);
-extern "C" int cp_one_file(const char *in_name, const char *out_name);
-
 #define PNG_CLEANUP \
   if(png_handler.png_ptr) \
   { \
@@ -87,10 +84,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   //call cp_one_file directly 
   char *argv_cp[] = { (char*)"pngcp", in_template, out_template };
   pngcp_main(3, argv_cp);
-
-  //call general cpng
-  char *argv_cp2[3] = { (char*)"pngcp", in_template, out_template };
-  cpng(3, argv_cp2);
 
   // tidy up
   unlink(in_template);
