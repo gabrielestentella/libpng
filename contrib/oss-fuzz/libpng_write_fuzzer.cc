@@ -28,6 +28,13 @@
 #include "png.h"
 
 // Forward decls from pngcp.c
+/* ---------- bring in pngcp.c but make its 'static' functions global ---- */
+#define static        /* drop the storage‑class specifier               */
+#define main pngcp_main   /* avoid duplicate symbol ‘main’               */
+#include "contrib/tools/pngcp.c"
+#undef static
+/* ---------------------------------------------------------------------- */
+
 extern "C" int cpng(int argc, char **argv);
 extern "C" int cp_one_file(const char *in_name, const char *out_name);
 

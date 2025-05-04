@@ -40,7 +40,7 @@ make -j$(nproc) libpng16.la
 
 # build libpng_write_fuzzer.
 # 1. compile pngcp.c with the C compiler (no C++ mangling)
-$CC $CFLAGS -I. -c $SRC/libpng/contrib/tools/pngcp.c -o $WORK/pngcp.o
+#$CC $CFLAGS -I. -c $SRC/libpng/contrib/tools/pngcp.c -o $WORK/pngcp.o
 # 2. build+link the fuzzer *and* that object with clang++
 $CXX $CXXFLAGS -std=c++11 -I. \
      $WORK/pngcp.o \
