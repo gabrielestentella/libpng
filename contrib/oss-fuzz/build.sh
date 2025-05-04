@@ -43,7 +43,6 @@ make -j$(nproc) libpng16.la
 #$CC $CFLAGS -I. -c $SRC/libpng/contrib/tools/pngcp.c -o $WORK/pngcp.o
 # 2. build+link the fuzzer *and* that object with clang++
 $CXX $CXXFLAGS -std=c++11 -I. \
-     $WORK/pngcp.o \
      $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
      .libs/libpng16.a -lz -lFuzzingEngine
