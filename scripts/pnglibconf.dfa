@@ -466,7 +466,7 @@ option FIXED_POINT
 # macros and functions (FILE *, printf, etc.) from being compiled and used,
 # unless (PNG_DEBUG > 0) has been #defined.
 
-option STDIO
+option STDIO disabled disabled
 option CONSOLE_IO requires STDIO
 
 # Note: prior to 1.5.0 this option could not be disabled if STDIO
@@ -544,6 +544,10 @@ option SET_USER_LIMITS requires USER_LIMITS
 # to libpng 1.6; the new interfaces in 1.6 will take several years to become
 # popular.
 
+################################
+option READ
+################################
+
 option READ enables READ_INTERLACING SET_OPTION
 
 # Disabling READ_16BIT does not disable reading 16-bit PNG files, but it
@@ -556,6 +560,10 @@ option READ enables READ_INTERLACING SET_OPTION
 option READ_16BIT requires READ enables 16BIT
 
 option READ_QUANTIZE requires READ
+
+################################
+option READ_TRANSFORMS
+################################
 
 option READ_TRANSFORMS requires READ
 = NO_READ_TRANSFORMS READ_TRANSFORMS_NOT_SUPPORTED
@@ -622,7 +630,7 @@ option BUILD_GRAYSCALE_PALETTE
 
 # WRITE options
 
-option WRITE enables WRITE_INT_FUNCTIONS
+option WRITE disabled
 
 # Disabling WRITE_16BIT prevents 16-bit PNG files from being
 # generated.
@@ -1028,14 +1036,14 @@ option FORMAT_AFIRST disabled
 option FORMAT_BGR disabled
 
 # Flags definitions for improved fuzzer
-option PNG_READ_BGR_SUPPORTED
-option PNG_READ_SWAP_SUPPORTED
-option PNG_READ_PACKSWAP_SUPPORTED
-option PNG_READ_SHIFT_SUPPORTED
-option PNG_READ_SWAP_ALPHA_SUPPORTED
-option PNG_READ_INVERT_ALPHA_SUPPORTED
-option PNG_READ_INVERT_SUPPORTED
-option PNG_16BIT_SUPPORTED
-option PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
-option PNG_READ_USER_TRANSFORM_SUPPORTED
-option PNG_USER_TRANSFORM_PTR_SUPPORTED
+option READ_BGR
+option READ_SWAP
+option READ_PACKSWAP
+option READ_SHIFT
+option READ_SWAP_ALPHA
+option READ_INVERT_ALPHA
+option READ_INVERT
+option 16BIT
+option READ_CHECK_FOR_INVALID_INDEX
+option READ_USER_TRANSFORM
+option USER_TRANSFORM_PTR
