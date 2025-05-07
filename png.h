@@ -2268,7 +2268,7 @@ PNG_FIXED_EXPORT(214, png_uint_32, png_get_sCAL_fixed,
 #endif
 PNG_EXPORT(169, png_uint_32, png_get_sCAL_s,
     (png_const_structrp png_ptr, png_const_inforp info_ptr, int *unit,
-    png_charpp swidth, png_charpp sheight));
+    png_charpp *swidth, png_charpp *sheight));
 
 PNG_FP_EXPORT(170, void, png_set_sCAL, (png_const_structrp png_ptr,
     png_inforp info_ptr, int unit, double width, double height))

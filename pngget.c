@@ -1076,7 +1076,7 @@ png_get_sCAL(png_const_structrp png_ptr, png_const_inforp info_ptr,
 #  endif /* FLOATING POINT */
 png_uint_32 PNGAPI
 png_get_sCAL_s(png_const_structrp png_ptr, png_const_inforp info_ptr,
-    int *unit, png_charpp *width, png_charpp height)
+    int *unit, png_charpp *width, png_charpp *height)
 {
    png_debug1(1, "in %s retrieval function", "sCAL(str)");
 

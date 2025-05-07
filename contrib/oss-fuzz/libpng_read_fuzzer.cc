@@ -164,7 +164,7 @@ void getFunctions (PngObjectHandler *png_handler) {
   double width_2, height_2;
   png_get_sCAL(png_handler->png_ptr, png_handler->info_ptr, &unit_type, &width_2, &height_2);
   png_charpp width_3, height_3;
-  png_get_sCAL_s(png_handler->png_ptr, png_handler->info_ptr, &unit_type, width_3, height_3);
+  png_get_sCAL_s(png_handler->png_ptr, png_handler->info_ptr, &unit_type, &width_3, &height_3);
   png_get_pHYs(png_handler->png_ptr, png_handler->info_ptr, &res_x, &res_y, &unit_type);
   png_colorp palette;
   png_get_PLTE(png_handler->png_ptr, png_handler->info_ptr, &palette, &unit_type);
