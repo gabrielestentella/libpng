@@ -1146,3 +1146,18 @@ endif()
 # TODO: Create MSVC import lib for MinGW-compiled shared lib.
 # pexports libpng.dll > libpng.def
 # lib /def:libpng.def /machine:x86
+
+# Flags definitions for improved fuzzer
+add_executable(pngtrans)
+target_compile_definitions(pngtrans 
+                           PNG_READ_BGR_SUPPORTED
+                           PNG_READ_SWAP_SUPPORTED
+                           PRIVATE PNG_READ_PACKSWAP_SUPPORTED
+                           PNG_READ_SHIFT_SUPPORTED
+                           PNG_READ_SWAP_ALPHA_SUPPORTED
+                           PNG_READ_INVERT_ALPHA_SUPPORTED
+                           PNG_READ_INVERT_SUPPORTED
+                           PNG_16BIT_SUPPORTED
+                           PNG_READ_CHECK_FOR_INVALID_INDEX_SUPPORTED
+                           PNG_READ_USER_TRANSFORM_SUPPORTED
+                           PNG_USER_TRANSFORM_PTR_SUPPORTED)
