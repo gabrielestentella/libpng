@@ -40,6 +40,18 @@ make -j$(nproc) libpng16.la
 
 # build libpng_write_fuzzer.
 $CXX $CXXFLAGS -std=c++11 -I. \
+     -DPNG_INTERNAL \
+     -DPNG_WRITE_SUPPORTED \
+     -DPNG_WRITE_TRANSFORMS_SUPPORTED \
+     -DPNG_WRITE_TEXT_SUPPORTED \
+     -DPNG_WRITE_iCCP_SUPPORTED \
+     -DPNG_WRITE_tIME_SUPPORTED \
+     -DPNG_WRITE_pHYs_SUPPORTED \
+     -DPNG_WRITE_sBIT_SUPPORTED \
+     -DPNG_WRITE_sCAL_SUPPORTED \
+     -DPNG_WRITE_gAMA_SUPPORTED \
+     -DPNG_WRITE_bKGD_SUPPORTED \
+     -DPNG_WRITE_hIST_SUPPORTED \
      $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
      -lFuzzingEngine .libs/libpng16.a -lz
