@@ -1,5 +1,5 @@
 
-#ifdef CPY_TEST
+#ifdef PNG_CPY_TEST_FUZZ
   #define static                 /* remove 'static' so symbols are extern */
   #define main  pngcp_main      /* rename its main() to pngcp_main()      */
   #include "contrib/tools/pngcp.c"
@@ -22,25 +22,6 @@
 #define PNG_sCAL_SUPPORTED
 
 #include "png.h"
-
-#define PNG_CLEANUP \
-  if(png_handler.png_ptr) \
-  { \
-    if (png_handler.row_ptr) \
-      png_free(png_handler.png_ptr, png_handler.row_ptr); \
-    if (png_handler.end_info_ptr) \
-      png_destroy_read_struct(&png_handler.png_ptr, &png_handler.info_ptr,\
-        &png_handler.end_info_ptr); \
-    else if (png_handler.info_ptr) \
-      png_destroy_read_struct(&png_handler.png_ptr, &png_handler.info_ptr,\
-        nullptr); \
-    else \
-      png_destroy_read_struct(&png_handler.png_ptr, nullptr, nullptr); \
-    png_handler.png_ptr = nullptr; \
-    png_handler.row_ptr = nullptr; \
-    png_handler.info_ptr = nullptr; \
-    png_handler.end_info_ptr = nullptr; \
-  }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   if (size < 5) return 0; //at least a few bytes for dimensions
@@ -68,7 +49,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   //free image memory
   png_image_free(&image);
 
-#ifdef CPY_TEST
+#ifdef PNG_CPY_TEST_FUZZ
   //PNG CPY SECTION
 
   //write the fuzz‑generated PNG to a temp input file
