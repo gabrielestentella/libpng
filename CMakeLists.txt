@@ -1152,7 +1152,7 @@ add_executable(pngtrans)
 target_compile_definitions(pngtrans 
                            PNG_READ_BGR_SUPPORTED
                            PNG_READ_SWAP_SUPPORTED
-                           PRIVATE PNG_READ_PACKSWAP_SUPPORTED
+                           PNG_READ_PACKSWAP_SUPPORTED
                            PNG_READ_SHIFT_SUPPORTED
                            PNG_READ_SWAP_ALPHA_SUPPORTED
                            PNG_READ_INVERT_ALPHA_SUPPORTED
