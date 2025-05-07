@@ -1,10 +1,12 @@
-#define static                 /* remove 'static' so symbols are extern */
-#define main  pngcp_main      /* rename its main() to pngcp_main()      */
-#include "contrib/tools/pngcp.c"
-#undef main
-#undef static
 
-int pngcp_main(int argc, char** argv);
+#ifdef CPY_TEST
+  #define static                 /* remove 'static' so symbols are extern */
+  #define main  pngcp_main      /* rename its main() to pngcp_main()      */
+  #include "contrib/tools/pngcp.c"
+  #undef main
+  #undef static
+  int pngcp_main(int argc, char** argv);
+#endif 
 
 #include <stddef.h>
 #include <stdint.h>
@@ -66,6 +68,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   //free image memory
   png_image_free(&image);
 
+#ifdef CPY_TEST
   //PNG CPY SECTION
 
   //write the fuzz‑generated PNG to a temp input file
@@ -88,6 +91,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   // tidy up
   unlink(in_template);
   unlink(out_template);
+#endif 
+
   free(out_buf);
   return 0;
 }
