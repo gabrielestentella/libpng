@@ -44,16 +44,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     }
 
     //3) In-memory write callbacks
-    struct Mem { std::vector<uint8_t> buf; };
-    Mem mem;
-    auto write_cb = [](png_structp p, png_bytep d, png_size_t len){
+    struct Mem { std::vector<uint8_t> buf; } mem;
+    auto write_cb = [](png_structp p, png_bytep d, png_size_t len) {
         auto m = reinterpret_cast<Mem*>(png_get_io_ptr(p));
-        m->buf.insert(m->buf.end(), d, d+len);
+        m->buf.insert(m->buf.end(), d, d + len);
     };
-    auto flush_cb = [](png_structp){};
+    auto flush_cb = [](png_structp) {};
     png_set_write_fn(png_ptr, &mem, write_cb, flush_cb);
 
-    //4) IHDR + default ADAM7, BASE compression/filter
+    //4) IHDR + ADAM7 interlace, base compression/filter
     png_set_IHDR(png_ptr, info_ptr,
                  w, h, bit_depth, color_type,
                  PNG_INTERLACE_ADAM7,
@@ -99,9 +98,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         png_bytep profile = (png_bytep)malloc(clen);
         memcpy(profile, data + pos, clen);
         png_set_iCCP(png_ptr, info_ptr,
-                     reinterpret_cast<png_const_charp>("prof"),
+                     (png_const_charp)"prof",
                      PNG_COMPRESSION_TYPE_BASE,
-                     profile, clen);
+                     (png_const_bytep)profile, clen);
         free(profile);
         pos += clen;
     }
@@ -109,9 +108,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     if (flags & 0x0008) {
         //bKGD
         png_color_16 bg;
-        bg.red   = ((uint16_t)data[pos%size] << 8) | data[(pos+1)%size];
-        bg.green = ((uint16_t)data[(pos+2)%size] << 8) | data[(pos+3)%size];
-        bg.blue  = ((uint16_t)data[(pos+4)%size] << 8) | data[(pos+5)%size];
+        bg.red   = ((uint16_t)data[pos % size] << 8) | data[(pos+1) % size];
+        bg.green = ((uint16_t)data[(pos+2) % size] << 8) | data[(pos+3) % size];
+        bg.blue  = ((uint16_t)data[(pos+4) % size] << 8) | data[(pos+5) % size];
         png_set_bKGD(png_ptr, info_ptr, &bg);
         pos += 6;
     }
@@ -125,8 +124,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     if (flags & 0x0020) {
         //pHYs
         png_set_pHYs(png_ptr, info_ptr,
-                     (png_uint_32)data[pos%size],
-                     (png_uint_32)data[(pos+1)%size],
+                     (png_uint_32)data[pos % size],
+                     (png_uint_32)data[(pos+1) % size],
                      PNG_RESOLUTION_METER);
         pos += 2;
     }
@@ -149,20 +148,18 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     }
 
     if (flags & 0x0100) {
-        //hIST (requires a palette)
+        //hIST (requires palette)
         if (color_type == PNG_COLOR_TYPE_PALETTE) {
-            int num_palette;
-            png_colorp palette;
-            png_get_PLTE(png_ptr, info_ptr, &palette, &num_palette);
-            if (num_palette > 0) {
-                png_uint_16p hist = (png_uint_16p)
-                    malloc(num_palette * sizeof(png_uint_16));
-                for (int i = 0; i < num_palette; i++) {
-                    hist[i] = (png_uint_16)(data[pos % size]);
-                    pos++;
+            int n; png_colorp pal;
+            png_get_PLTE(png_ptr, info_ptr, &pal, &n);
+            if (n > 0) {
+                png_uint_16p hist = (png_uint_16p)malloc(n * sizeof(png_uint_16));
+                for (int i = 0; i < n; i++) {
+                    hist[i] = (png_uint_16)data[(pos + i) % size];
                 }
-                png_set_hIST(png_ptr, info_ptr, hist);
+                png_set_hIST(png_ptr, info_ptr, (png_const_uint_16p)hist);
                 free(hist);
+                pos += n;
             }
         }
     }
@@ -182,15 +179,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     //6) Write header
     png_write_info(png_ptr, info_ptr);
 
-    //7) Prepare rows
-    int channels  = png_get_channels(png_ptr, info_ptr);
+    //7) Prepare rows safely (fill from data % size)
+    int channels   = png_get_channels(png_ptr, info_ptr);
     size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
     std::vector<png_bytep> rows(h);
     for (uint32_t y = 0; y < h; y++) {
         rows[y] = (png_bytep)malloc(rowbytes);
-        memcpy(rows[y],
-               data + pos + (y * rowbytes) % (size - pos),
-               rowbytes);
+        for (size_t i = 0; i < rowbytes; i++) {
+            rows[y][i] = data[i % size];
+        }
     }
     png_set_rows(png_ptr, info_ptr, rows.data());
 
