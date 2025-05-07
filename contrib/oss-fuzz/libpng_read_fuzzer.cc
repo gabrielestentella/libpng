@@ -143,7 +143,7 @@ void getFunctions (PngObjectHandler *png_handler) {
   int compression_type;
   png_bytep profile;
   png_uint_32 proflen;
-  png_get_iCCP(png_handler->png_ptr, png_handler->info_ptr, &name, &compression_type, &profile, &proflen);
+  png_get_iCCP(png_handler->png_ptr, png_handler->info_ptr, name, &compression_type, &profile, &proflen);
   png_sPLT_tp spalettes;
   png_get_sPLT(png_handler->png_ptr, png_handler->info_ptr, &spalettes);
   png_uint_32 maxCLL, maxFALL, num_exif;
