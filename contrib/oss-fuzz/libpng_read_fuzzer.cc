@@ -139,11 +139,11 @@ void getFunctions (PngObjectHandler *png_handler) {
   png_get_gAMA(png_handler->png_ptr, png_handler->info_ptr, &gamma_file);
   int file_srgb_intent;
   png_get_sRGB(png_handler->png_ptr, png_handler->info_ptr, &file_srgb_intent);
-  png_charp name;
+  png_charpp name;
   int compression_type;
   png_bytep profile;
   png_uint_32 proflen;
-  png_get_iCCP(png_handler->png_ptr, png_handler->info_ptr, name, &compression_type, &profile, &proflen);
+  png_get_iCCP(png_handler->png_ptr, png_handler->info_ptr, &name, &compression_type, &profile, &proflen);
   png_sPLT_tp spalettes;
   png_get_sPLT(png_handler->png_ptr, png_handler->info_ptr, &spalettes);
   png_uint_32 maxCLL, maxFALL, num_exif;
