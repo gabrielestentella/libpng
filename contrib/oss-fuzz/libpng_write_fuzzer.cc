@@ -43,7 +43,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
     if(flags&0x0001){
         if(color_type==PNG_COLOR_TYPE_PALETTE||color_type==PNG_COLOR_TYPE_RGB){
-            int n=std::clamp<int>(data[pos++%size],1,16);
+            int n = 1 + (data[pos++ % size] % 16);
             std::vector<png_color> pal(n);
             for(int i=0;i<n;i++){
                 pal[i].red=data[pos++%size];
