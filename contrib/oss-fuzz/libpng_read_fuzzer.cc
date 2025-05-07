@@ -177,8 +177,8 @@ void getFunctions (PngObjectHandler *png_handler) {
   png_bytep trans_alpha;
   png_color_16p trans_color;
   png_get_tRNS(png_handler->png_ptr, png_handler->info_ptr, &trans_alpha, &unit_type, &trans_color);
-  // png_unknown_chunkpp entries;
-  // png_get_unknown_chunks(png_handler->png_ptr, png_handler->info_ptr, entries);
+  png_unknown_chunkpp entries;
+  png_get_unknown_chunks(png_handler->png_ptr, png_handler->info_ptr, &entries);
   png_get_rgb_to_gray_status(png_handler->png_ptr);
   png_get_user_chunk_ptr(png_handler->png_ptr);
   png_get_compression_buffer_size(png_handler->png_ptr);
