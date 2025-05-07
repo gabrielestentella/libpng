@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include "png.h"
-#include "pngpriv.h"
 
 // Helper function to initialize a row_info structure
 static void init_row_info(png_row_info* row_info, png_uint_32 width, 
