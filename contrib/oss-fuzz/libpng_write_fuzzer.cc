@@ -179,14 +179,16 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     //6) Write header
     png_write_info(png_ptr, info_ptr);
 
-    //7) Prepare rows safely (fill from data % size)
-    int channels   = png_get_channels(png_ptr, info_ptr);
+    //7) Prepare rows safely: per-byte fill via modulo
+    int channels    = png_get_channels(png_ptr, info_ptr);
     size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
     std::vector<png_bytep> rows(h);
     for (uint32_t y = 0; y < h; y++) {
         rows[y] = (png_bytep)malloc(rowbytes);
         for (size_t i = 0; i < rowbytes; i++) {
-            rows[y][i] = data[i % size];
+            //wrap around entire input
+            size_t idx = (pos + y * rowbytes + i) % size;
+            rows[y][i] = data[idx];
         }
     }
     png_set_rows(png_ptr, info_ptr, rows.data());
