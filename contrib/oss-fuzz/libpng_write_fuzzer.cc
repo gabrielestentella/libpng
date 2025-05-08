@@ -42,7 +42,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   //Write PNG to memory (output buffer allocated by libpng)
   png_bytep out_buf = NULL;
   png_alloc_size_t out_size = 0;
-  if (!png_image_write_to_memory(&image, &out_buf, &out_size, 0, pixels, 0, NULL)) {
+  if (png_image_write_to_memory(&image, &out_buf, &out_size, 0, pixels, 0, NULL) == -1) {
       png_image_free(&image);
       return 0; // writing failed
   }
