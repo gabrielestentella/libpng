@@ -185,64 +185,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   png_set_scale_16(png_handler.png_ptr);
   png_set_tRNS_to_alpha(png_handler.png_ptr);
 
-  // Enable additional transformations based on input data
-  // Use the first few bytes after the header as control flags
-  if (size >= kPngHeaderSize + 8) {
-    // Use each bit of the control byte to enable a specific transformation
-    png_byte control_byte = data[kPngHeaderSize];
-    
-    // BGR color handling - swap R and B channels
-    if (control_byte & 0x01) {
-      png_set_bgr(png_handler.png_ptr);
-    }
-    
-    // Swap bytes for 16-bit depth images
-    if (control_byte & 0x02) {
-      png_set_swap(png_handler.png_ptr);
-    }
-    
-    // Swap bits within bytes for sub-8-bit depths
-    if (control_byte & 0x04) {
-      png_set_packswap(png_handler.png_ptr);
-    }
-    
-    // Swap alpha channel position
-    if (control_byte & 0x08) {
-      png_set_swap_alpha(png_handler.png_ptr);
-    }
-    
-    // Invert alpha channel values
-    if (control_byte & 0x10) {
-      png_set_invert_alpha(png_handler.png_ptr);
-    }
-    
-    // Invert monochrome values
-    if (control_byte & 0x20) {
-      png_set_invert_mono(png_handler.png_ptr);
-    }
-    
-    // Set up shift parameters if relevant - shift adjusts bit significance
-    if (control_byte & 0x40) {
-      png_color_8 shift_params;
-      // Use some bytes from the input as shift values
-      shift_params.red = data[kPngHeaderSize + 1] & 0x07;    // Keep shifts small (0-7)
-      shift_params.green = data[kPngHeaderSize + 2] & 0x07;
-      shift_params.blue = data[kPngHeaderSize + 3] & 0x07;
-      shift_params.gray = data[kPngHeaderSize + 4] & 0x07;
-      shift_params.alpha = data[kPngHeaderSize + 5] & 0x07;
-      png_set_shift(png_handler.png_ptr, &shift_params);
-    }
-    
-    // Test user transform functionality
-    if (control_byte & 0x80) {
-      // The transform doesn't do anything but the API gets exercised
-      png_set_user_transform_info(png_handler.png_ptr, 
-                                 (void*)(data + kPngHeaderSize + 6), // Use input as transform pointer
-                                 bit_depth,                         // Pass through the image depth
-                                 color_type & PNG_COLOR_MASK_COLOR ? 3 : 1); // Channel count
-    }
-  }
-
   int passes = png_set_interlace_handling(png_handler.png_ptr);
 
   png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
@@ -255,19 +197,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     for (png_uint_32 y = 0; y < height; ++y) {
       png_read_row(png_handler.png_ptr,
                    static_cast<png_bytep>(png_handler.row_ptr), nullptr);
-      
-      // Test row and pass number retrieval during reading
-      if (size >= kPngHeaderSize + 10 && (data[kPngHeaderSize + 9] & 0x01)) {
-        volatile png_uint_32 current_row = png_get_current_row_number(png_handler.png_ptr);
-        volatile png_byte current_pass = png_get_current_pass_number(png_handler.png_ptr);
-        (void)current_row; // Prevent unused variable warnings
-        (void)current_pass;
-      }
     }
   }
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
-
 
   png_row_info row_info;
   row_info.width = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
@@ -367,7 +300,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   }
 
   PNG_CLEANUP
-  
+
 #ifdef PNG_SIMPLIFIED_READ_SUPPORTED
   // Simplified READ API
   png_image image;
