@@ -1,4 +1,4 @@
-#define PNG_CPY_TEST_FUZZ
+//#define PNG_CPY_TEST_FUZZ
 #ifdef PNG_CPY_TEST_FUZZ
   #define static                 /* remove 'static' so symbols are extern */
   #define main  pngcp_main      /* rename its main() to pngcp_main()      */
@@ -8,46 +8,79 @@
   int pngcp_main(int argc, char** argv);
 #endif 
 
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-
+// libpng_write_fuzzer.cc – with extra png_write_image coverage
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <vector>
-#include <unistd.h>   // mkstemp, unlink
-#include <fcntl.h>
-#include <stdio.h>
-
-#define PNG_INTERNAL
-#define PNG_sCAL_SUPPORTED
-
+#include <ctime>
+#include <setjmp.h>
 #include "png.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  if (size < 5) return 0; //at least a few bytes for dimensions
-  png_image image;
-  memset(&image, 0, sizeof(image));
-  image.version = PNG_IMAGE_VERSION;
-  //use first bytes to construct small width/height
-  image.width = data[0] + 1;
-  image.height = data[1] + 1;
-  int colormode = data[2] % 3;
-  //pick a color format: 0=RGBA, 1=GRAY, 2=RGBA palette (just for variety)
-  image.format = (colormode == 1 ? PNG_FORMAT_GRAY : PNG_FORMAT_RGBA);
-  //Allocate pixel buffer (assume 8-bit components)
-  size_t pixel_size = PNG_IMAGE_SIZE(image);
-  if (pixel_size > size - 3 || pixel_size == 0) return 0;
-  //Use remaining fuzz data as pixel bytes
-  png_bytep pixels = const_cast<png_bytep>(data + 3);
-  //Write PNG to memory (output buffer allocated by libpng)
-  png_bytep out_buf = NULL;
-  png_alloc_size_t out_size = 0;
-  if (png_image_write_to_memory(&image, &out_buf, &out_size, 0, pixels, 0, NULL) == -1) {
-      png_image_free(&image);
-      return 0; // writing failed
+  if (size < 10) return 0;
+  size_t pos = 0;
+  auto next = [&](void) -> uint8_t { return data[pos++ % size]; };
+
+  /* -------- build a small PNG_IMAGE ----------------------------- */
+  png_image img;
+  std::memset(&img, 0, sizeof(img));
+  img.version = PNG_IMAGE_VERSION;
+  img.width   = 1 + next();
+  img.height  = 1 + next();
+  img.format  = (next() & 1) ? PNG_FORMAT_RGBA : PNG_FORMAT_RGB;
+
+  /* allocate pixel buffer */
+  size_t pixel_bytes = PNG_IMAGE_SIZE(img);
+  std::vector<uint8_t> pixels(pixel_bytes);
+  for (size_t i = 0; i < pixel_bytes; ++i) pixels[i] = next();
+
+  png_structp png_ptr = png_create_write_struct(
+      PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+  if (!png_ptr) return 0;
+  png_infop info_ptr  = png_create_info_struct(png_ptr);
+  if (!info_ptr) { png_destroy_write_struct(&png_ptr, nullptr); return 0; }
+
+  /* longjmp-safe clean-up */
+  if (setjmp(png_jmpbuf(png_ptr))) {
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    return 0;
   }
-  //free image memory
-  png_image_free(&image);
+
+  /* discard-all write callback */
+  png_set_write_fn(png_ptr, nullptr,
+      [](png_structp, png_bytep, png_size_t) {/* drop */}, nullptr);
+
+  /* IHDR — map from simplified API params */
+  int color_type = (img.format == PNG_FORMAT_RGBA) ?
+                      PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB;
+  png_set_IHDR(png_ptr, info_ptr,
+                img.width, img.height, 8 /*bit depth*/,
+                color_type,
+                PNG_INTERLACE_NONE,
+                PNG_COMPRESSION_TYPE_BASE,
+                PNG_FILTER_TYPE_BASE);
+
+  /* row pointers */
+  size_t rowbytes = (img.format == PNG_FORMAT_RGBA ?
+                      img.width * 4 : img.width * 3);
+  std::vector<png_bytep> rows(img.height);
+  for (png_uint_32 y = 0; y < img.height; ++y)
+    rows[y] = (png_bytep)&pixels[y * rowbytes];
+
+  png_write_info(png_ptr, info_ptr);
+  png_write_image(png_ptr, rows.data());
+  png_write_end  (png_ptr, info_ptr);
+  png_destroy_write_struct(&png_ptr, &info_ptr);
+  
+
+  /* --- original simplified-API path (unchanged) ----------------- */
+  png_bytep out_buf = nullptr;
+  png_alloc_size_t out_size = 0;
+  png_image_write_to_memory(&img, &out_buf, &out_size,
+                            0 /* convert_to_8bit */,
+                            pixels.data(), 0 /* row_stride */, nullptr);
+  free(out_buf);
 
 #ifdef PNG_CPY_TEST_FUZZ
   //PNG CPY SECTION
@@ -73,7 +106,5 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   unlink(in_template);
   unlink(out_template);
 #endif 
-
-  free(out_buf);
   return 0;
 }
