@@ -44,7 +44,6 @@ $CXX $CXXFLAGS -std=c++11 -I. \
      -lFuzzingEngine .libs/libpng16.a -lz
 
 $CXX $CXXFLAGS -std=c++11 -I. \
-     -DPNG_READ_UNKNOWN_CHUNKS_SUPPORTED \
      $SRC/libpng/contrib/oss-fuzz/libpng_improved_read_fuzzer.cc \
      -o $OUT/libpng_improved_read_fuzzer \
      -lFuzzingEngine .libs/libpng16.a -lz
