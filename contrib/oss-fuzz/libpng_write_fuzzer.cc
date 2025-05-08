@@ -1,3 +1,12 @@
+#define PNG_CPY_TEST_FUZZ
+#ifdef PNG_CPY_TEST_FUZZ
+  #define static                 /* remove 'static' so symbols are extern */
+  #define main  pngcp_main      /* rename its main() to pngcp_main()      */
+  #include "contrib/tools/pngcp.c"
+  #undef main
+  #undef static
+  int pngcp_main(int argc, char** argv);
+#endif 
 // libpng classic‑writer fuzz harness
 // Builds on the original libpng_write_fuzzer but exercises the full writer
 // surface by driving the low‑level API (png_write_image / png_write_rows).
@@ -118,5 +127,30 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   png_write_end(png_ptr, info_ptr);
   png_destroy_write_struct(&png_ptr, &info_ptr);
+
+#ifdef PNG_CPY_TEST_FUZZ
+  if (!out.empty()) {
+    /* create a temp input file containing the freshly‑encoded PNG */
+    char in_tmpl[] = "/tmp/pngcp_in_XXXXXX";
+    int  infd = mkstemp(in_tmpl);
+    if (infd >= 0) {
+      (void)write(infd, out.data(), out.size());
+      close(infd);
+
+      /* reserve a path for the pngcp output */
+      char out_tmpl[] = "/tmp/pngcp_out_XXXXXX";
+      int  outfd = mkstemp(out_tmpl);
+      if (outfd >= 0) {
+        close(outfd);
+        unlink(out_tmpl); /* cp_one_file will recreate it */
+
+        char *argv_cp[] = { (char*)"pngcp", in_tmpl, out_tmpl };
+        pngcp_main(3, argv_cp);
+        unlink(out_tmpl);
+      }
+      unlink(in_tmpl);
+    }
+  }
+#endif
   return 0;
 }
