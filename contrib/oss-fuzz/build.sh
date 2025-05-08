@@ -22,7 +22,7 @@
 # 3. Build zlib alongside libpng
 ################################################################################
 
-export CXXFLAGS="$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED"
+export CXXFLAGS="$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED -DPNG_WRITE_SUPPORTED"
 
 
 # Disable logging via library build configuration control.
