@@ -2,13 +2,14 @@
 // Enhanced to cover critical functions in pngread.c
 // Copyright 2017-2018 Glenn Randers-Pehrson
 // Copyright 2015 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license.
+// Use of this source code is governed by a BSD-style license that may
+// be found in the LICENSE file https://cs.chromium.org/chromium/src/LICENSE
 
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <algorithm>
+
 #include <vector>
 #include <random>
 
@@ -47,7 +48,14 @@ struct PngObjectHandler {
   BufState* buf_state = nullptr;
 
   ~PngObjectHandler() {
-    PNG_CLEANUP
+    if (row_ptr)
+      png_free(png_ptr, row_ptr);
+    if (end_info_ptr)
+      png_destroy_read_struct(&png_ptr, &info_ptr, &end_info_ptr);
+    else if (info_ptr)
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+    else
+      png_destroy_read_struct(&png_ptr, nullptr, nullptr);
     delete buf_state;
   }
 };
@@ -63,8 +71,14 @@ void user_read_data(png_structp png_ptr, png_bytep data, size_t length) {
 }
 
 void* limited_malloc(png_structp, png_alloc_size_t size) {
+  // libpng may allocate large amounts of memory that the fuzzer reports as
+  // an error. In order to silence these errors, make libpng fail when trying
+  // to allocate a large amount. This allocator used to be in the Chromium
+  // version of this fuzzer.
+  // This number is chosen to match the default png_user_chunk_malloc_max.
   if (size > 4000000)
     return nullptr;
+
   return malloc(size);
 }
 
@@ -175,6 +189,8 @@ int test_png_read_png(PngObjectHandler& png_handler, uint32_t seed) {
 }
 
 // Entry point for LibFuzzer
+// Roughly follows the libpng book example:
+// http://www.libpng.org/pub/png/book/chapter13.html
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   if (size < kPngHeaderSize) {
     return 0;
@@ -182,6 +198,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   std::vector<unsigned char> v(data, data + size);
   if (png_sig_cmp(v.data(), 0, kPngHeaderSize)) {
+    // not a PNG.
     return 0;
   }
 
@@ -192,7 +209,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   test_simplified_read(data, size, seed);
 
   PngObjectHandler png_handler;
-  png_handler.png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+  png_handler.png_ptr = nullptr;
+  png_handler.row_ptr = nullptr;
+  png_handler.info_ptr = nullptr;
+  png_handler.end_info_ptr = nullptr;
+  
+  png_handler.png_ptr = png_create_read_struct
+    (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
   if (!png_handler.png_ptr) {
     return 0;
   }
@@ -209,12 +232,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     return 0;
   }
 
+  // Use a custom allocator that fails for large allocations to avoid OOM.
   png_set_mem_fn(png_handler.png_ptr, nullptr, limited_malloc, default_free);
+
   png_set_crc_action(png_handler.png_ptr, PNG_CRC_QUIET_USE, PNG_CRC_QUIET_USE);
 #ifdef PNG_IGNORE_ADLER32
   png_set_option(png_handler.png_ptr, PNG_IGNORE_ADLER32, PNG_OPTION_ON);
 #endif
 
+  // Setting up reading from buffer.
   png_handler.buf_state = new BufState();
   png_handler.buf_state->data = data + kPngHeaderSize;
   png_handler.buf_state->bytes_left = size - kPngHeaderSize;
@@ -242,13 +268,16 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   png_read_info(png_handler.png_ptr, png_handler.info_ptr);
 
+  // reset error handler to put png_deleter into scope.
   if (setjmp(png_jmpbuf(png_handler.png_ptr))) {
     PNG_CLEANUP
     return 0;
   }
 
   png_uint_32 width, height;
-  int bit_depth, color_type, interlace_type, compression_type, filter_type;
+  int bit_depth, color_type, interlace_type, compression_type;
+  int filter_type;
+
   if (!png_get_IHDR(png_handler.png_ptr, png_handler.info_ptr, &width,
                     &height, &bit_depth, &color_type, &interlace_type,
                     &compression_type, &filter_type)) {
@@ -256,6 +285,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     return 0;
   }
 
+  // This is going to be too slow.
   if (width && height > 50000000 / width) {
     PNG_CLEANUP
     return 0;
@@ -353,5 +383,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
   PNG_CLEANUP
+
+#ifdef PNG_SIMPLIFIED_READ_SUPPORTED
+  // Simplified READ API
+  png_image image;
+  memset(&image, 0, (sizeof image));
+  image.version = PNG_IMAGE_VERSION;
+
+  if (!png_image_begin_read_from_memory(&image, data, size)) {
+    return 0;
+  }
+
+  image.format = PNG_FORMAT_RGBA;
+  std::vector<png_byte> buffer(PNG_IMAGE_SIZE(image));
+  png_image_finish_read(&image, NULL, buffer.data(), 0, NULL);
+#endif
+
   return 0;
 }
