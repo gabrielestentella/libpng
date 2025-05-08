@@ -7,7 +7,7 @@
 # Enforce write support at compile time
 ################################################################################
 export CXXFLAGS="$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED"
-export CPPFLAGS="$CPPFLAGS -DPNG_WRITE_SUPPORTED -DPNG_WRITE_TRANSFORMS_SUPPORTED"   ### CHANGED
+# export CPPFLAGS="$CPPFLAGS -DPNG_WRITE_SUPPORTED -DPNG_WRITE_TRANSFORMS_SUPPORTED"   ### CHANGED
 
 ################################################################################
 # Patch pnglibconf.dfa
