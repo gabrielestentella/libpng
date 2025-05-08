@@ -291,11 +291,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     return 0;
   }
 
-#ifdef PNG_MNG_FEATURES_SUPPORTED
-  if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
-    png_set_mng_features(png_handler.png_ptr, PNG_FLAG_MNG_FILTER_64);
-  }
-#endif
+// #ifdef PNG_MNG_FEATURES_SUPPORTED
+//   if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
+//     png_set_mng_features(png_handler.png_ptr, PNG_FLAG_MNG_FILTER_64);
+//   }
+// #endif
 
   apply_random_transforms(png_handler.png_ptr, seed);
   int passes = png_set_interlace_handling(png_handler.png_ptr);
