@@ -270,35 +270,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     }
   }
 
-  if (size >= kPngHeaderSize + 10 && (data[kPngHeaderSize + 9] & 0x02)) {
-    volatile png_voidp user_ptr = png_get_user_transform_ptr(png_handler.png_ptr);
-    (void)user_ptr; // Prevent unused variable warnings
-  }
-
-  if (size >= kPngHeaderSize + 4) {
-    png_byte buf_32_1[4];
-    png_byte buf_32_2[4];
-    png_byte buf_16[2];
-
-    memcpy(buf_32_1, data + kPngHeaderSize, 4);
-    memcpy(buf_32_2, data + kPngHeaderSize, 4);
-    memcpy(buf_16, data + kPngHeaderSize, 2);
-    
-    // Call the integer conversion functions - these are macros in the OSS-FUZZ environment
-    volatile png_uint_32 val32 = png_get_uint_32(buf_32_1);
-    volatile png_int_32 val32s = png_get_int_32(buf_32_2);
-    volatile png_uint_16 val16 = png_get_uint_16(buf_16);
-    
-    // Test unknown chunk handling with public API
-    if (png_handler.png_ptr) {
-      png_byte chunk_name[5] = "zTXt";  // Using a known ancillary chunk type
-      
-      // Set unknown chunk handling with public API
-      png_set_keep_unknown_chunks(png_handler.png_ptr, PNG_HANDLE_CHUNK_ALWAYS, 
-                                  chunk_name, 1);
-    }
-  }
-
   PNG_CLEANUP
 
 #ifdef PNG_SIMPLIFIED_READ_SUPPORTED
