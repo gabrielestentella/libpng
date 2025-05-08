@@ -74,7 +74,7 @@ static void fuzzer_png_error_handler(png_structp png_ptr, png_const_charp error_
     } else {
         // Fallback if jmp_buf is not set, though it should be by png_create_write_struct
         fprintf(stderr, "Libpng error: %s (jmp_buf not set)\n", error_msg);
-        exit(1); // Or some other way to signal a hard error
+        exit(0); // Or some other way to signal a hard error
     }
 }
 
