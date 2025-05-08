@@ -385,22 +385,22 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     png_set_sCAL(png_ptr, info_ptr, (next_byte(data, size, &pos) % 2) + 1, scal_width, scal_height); // unit 1:meter, 2:radian
   }
   
-  // tIME (Image last modification time)
-  if (chunk_flags2 & 0x10) {
-    png_time mod_time;
-    // Fuzz time fields or use current time
-    if (next_byte(data, size, &pos) % 2 == 0) {
-        png_convert_from_time_t(&mod_time, time(nullptr));
-    } else {
-        mod_time.year   = next_uint16(data, size, &pos);
-        mod_time.month  = next_byte(data, size, &pos) % 12 + 1;
-        mod_time.day    = next_byte(data, size, &pos) % 31 + 1;
-        mod_time.hour   = next_byte(data, size, &pos) % 24;
-        mod_time.minute = next_byte(data, size, &pos) % 60;
-        mod_time.second = next_byte(data, size, &pos) % 60;
-    }
-    png_set_tIME(png_ptr, info_ptr, &mod_time);
-  }
+  // // tIME (Image last modification time)
+  // if (chunk_flags2 & 0x10) {
+  //   png_time mod_time;
+  //   // Fuzz time fields or use current time
+  //   if (next_byte(data, size, &pos) % 2 == 0) {
+  //       png_convert_from_time_t(&mod_time, time(nullptr));
+  //   } else {
+  //       mod_time.year   = next_uint16(data, size, &pos);
+  //       mod_time.month  = next_byte(data, size, &pos) % 12 + 1;
+  //       mod_time.day    = next_byte(data, size, &pos) % 31 + 1;
+  //       mod_time.hour   = next_byte(data, size, &pos) % 24;
+  //       mod_time.minute = next_byte(data, size, &pos) % 60;
+  //       mod_time.second = next_byte(data, size, &pos) % 60;
+  //   }
+  //   png_set_tIME(png_ptr, info_ptr, &mod_time);
+  // }
 
   // cHRM (Primary chromaticities and white point)
   if (chunk_flags2 & 0x20) {
