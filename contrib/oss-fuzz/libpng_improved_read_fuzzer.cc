@@ -7,7 +7,6 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include"sync.h"
 #include <vector>
 #include <random>
 
