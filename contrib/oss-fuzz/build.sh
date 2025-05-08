@@ -51,7 +51,9 @@ $CXX $CXXFLAGS -std=c++11 -I. \
      -lFuzzingEngine .libs/libpng16.a -lz
 
 # build libpng_write_fuzzer.
-$CXX $CXXFLAGS -std=c++11 -I. \
+$CXX $CXXFLAGS -std=c++11 \
+     -I. \
+     -include zlib.h \
      -DPNG_INTERNAL \
      -DPNG_WRITE_SUPPORTED \
      -DPNG_WRITE_TRANSFORMS_SUPPORTED \
