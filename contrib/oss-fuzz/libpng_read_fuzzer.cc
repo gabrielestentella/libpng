@@ -268,7 +268,79 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
-  // Test user transform pointer retrieval
+
+  png_row_info row_info;
+  row_info.width = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
+  row_info.rowbytes = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
+  row_info.color_type = data[8];
+  row_info.bit_depth = data[9];
+
+  switch (row_info.color_type) {
+      case PNG_COLOR_TYPE_GRAY:
+          row_info.channels = 1;
+          break;
+      case PNG_COLOR_TYPE_PALETTE:
+          row_info.channels = 1;
+          break;
+      case PNG_COLOR_TYPE_RGB:
+          row_info.channels = 3;
+          break;
+      case PNG_COLOR_TYPE_RGB_ALPHA:
+          row_info.channels = 4;
+          break;
+      case PNG_COLOR_TYPE_GRAY_ALPHA:
+          row_info.channels = 2;
+          break;
+      default:
+          row_info.channels = 1;
+          break;
+  }
+  row_info.pixel_depth = row_info.bit_depth * row_info.channels;
+
+  png_do_read_intrapixel(row_info, user_read_data);
+  
+  // Initialize variables for png_read_rows using fuzzer data
+  png_bytepp row = nullptr;
+  png_bytepp display_row = nullptr;
+  png_uint_32 num_rows = 1; // Default to a safe value
+  
+  if (size >= kPngHeaderSize + 12) {
+    // Use fuzzer data to determine how many rows to read
+    num_rows = (data[kPngHeaderSize + 10] & 0x0F) + 1; // Limit to reasonable range (1-16)
+    
+    // Allocate row pointers
+    row = static_cast<png_bytepp>(malloc(sizeof(png_bytep) * num_rows));
+    if (row) {
+      // Initialize all row pointers to our existing row buffer
+      for (png_uint_32 i = 0; i < num_rows; i++) {
+        row[i] = static_cast<png_bytep>(png_handler.row_ptr);
+      }
+      
+      // Only create display_row if control bit is set
+      if (data[kPngHeaderSize + 11] & 0x01) {
+        display_row = static_cast<png_bytepp>(malloc(sizeof(png_bytep) * num_rows));
+        if (display_row) {
+          for (png_uint_32 i = 0; i < num_rows; i++) {
+            display_row[i] = static_cast<png_bytep>(png_handler.row_ptr);
+          }
+        }
+      }
+      
+      // Call png_read_rows with our initialized pointers
+      if (setjmp(png_jmpbuf(png_handler.png_ptr)) == 0) {
+        png_read_rows(png_handler.png_ptr, row, display_row, num_rows);
+      }
+
+      png_read_image(png_handler.png_ptr, row);
+      
+      // Free allocated memory
+      free(row);
+      if (display_row) {
+        free(display_row);
+      }
+    }
+  }
+
   if (size >= kPngHeaderSize + 10 && (data[kPngHeaderSize + 9] & 0x02)) {
     volatile png_voidp user_ptr = png_get_user_transform_ptr(png_handler.png_ptr);
     (void)user_ptr; // Prevent unused variable warnings

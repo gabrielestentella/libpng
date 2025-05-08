@@ -22,6 +22,8 @@
 # 3. Build zlib alongside libpng
 ################################################################################
 
+export CXXFLAGS="$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED -DPNG_HANDLE_AS_UNKNOWN_SUPPORTED -DPNG_SEQUENTIAL_READ_SUPPORTED -DPNG_MNG_FEATURES_SUPPORTED -DPNG_READ_SHIFT_SUPPORTED -DPNG_READ_INVERT_SUPPORTED -DPNG_READ_EXPAND_SUPPORTED -DPNG_READ_PACK_SUPPORTED -DPNG_READ_PACKSWAP_SUPPORTED"
+
 # Disable logging via library build configuration control.
 cat scripts/pnglibconf.dfa | \
   sed -e "s/option STDIO/option STDIO disabled/" \
@@ -31,20 +33,20 @@ cat scripts/pnglibconf.dfa | \
 mv scripts/pnglibconf.dfa.temp scripts/pnglibconf.dfa
 
 # build the libpng library.
-# autoreconf -f -i
-# ./configure --with-libpng-prefix=OSS_FUZZ_
-# make -j$(nproc) clean
-# make -j$(nproc) libpng16.la
-
-# Build the libpng library with fuzzing support
 autoreconf -f -i
-./configure --with-libpng-prefix=OSS_FUZZ_ \
-    --enable-hardware-optimizations=no \
-    --enable-shared=no \
-    --enable-static=yes \
-    CPPFLAGS="-DPNG_ARM_NEON_OPT=0 -DPNG_INTEL_SSE_OPT=0"
+./configure --with-libpng-prefix=OSS_FUZZ_
 make -j$(nproc) clean
 make -j$(nproc) libpng16.la
+
+# Build the libpng library with fuzzing support
+# autoreconf -f -i
+# ./configure --with-libpng-prefix=OSS_FUZZ_ \
+#     --enable-hardware-optimizations=no \
+#     --enable-shared=no \
+#     --enable-static=yes \
+#     CPPFLAGS="-DPNG_ARM_NEON_OPT=0 -DPNG_INTEL_SSE_OPT=0"
+# make -j$(nproc) clean
+# make -j$(nproc) libpng16.la
 
 
 # build libpng_read_fuzzer.
@@ -54,16 +56,16 @@ $CXX $CXXFLAGS -std=c++11 -I. \
      -lFuzzingEngine .libs/libpng16.a -lz
 
 # build pngtrans_fuzzer.
-$CXX $CXXFLAGS -std=c++11 -I. \
-    $SRC/libpng/contrib/oss-fuzz/pngtrans_fuzzer.cc \
-    -o $OUT/pngtrans_fuzzer \
-    -lFuzzingEngine .libs/libpng16.a -lz
+# $CXX $CXXFLAGS -std=c++11 -I. \
+#     $SRC/libpng/contrib/oss-fuzz/pngtrans_fuzzer.cc \
+#     -o $OUT/pngtrans_fuzzer \
+#     -lFuzzingEngine .libs/libpng16.a -lz
 
 # add seed corpus.
-# find $SRC/libpng -name "*.png" | grep -v crashers | \
-#      xargs zip $OUT/libpng_read_fuzzer_seed_corpus.zip
 find $SRC/libpng -name "*.png" | grep -v crashers | \
-     xargs zip $OUT/pngtrans_fuzzer_seed_corpus.zip
+     xargs zip $OUT/libpng_read_fuzzer_seed_corpus.zip
+# find $SRC/libpng -name "*.png" | grep -v crashers | \
+#      xargs zip $OUT/pngtrans_fuzzer_seed_corpus.zip
 
 cp $SRC/libpng/contrib/oss-fuzz/*.dict \
      $SRC/libpng/contrib/oss-fuzz/*.options $OUT/
