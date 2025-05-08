@@ -53,14 +53,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   //PNG CPY SECTION
 
   //write the fuzz‑generated PNG to a temp input file
-  char in_template[]  = "./tmp/pngcp_in_XXXXXX";
+  char in_template[]  = "./pngcp_in_XXXXXX";
   int  infd = mkstemp(in_template);
   if (infd < 0) { free(out_buf); return 0; }
   write(infd, out_buf, out_size);
   close(infd);
 
   //second temp name will be the output file created by pngcp
-  char out_template[] = "./tmp/pngcp_out_XXXXXX";
+  char out_template[] = "./pngcp_out_XXXXXX";
   int  outfd = mkstemp(out_template);   //just reserves the path
   close(outfd);                         //cp_one_file will re‑create
   unlink(out_template);                 //remove placeholder
