@@ -202,33 +202,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
-  png_row_info row_info;
-  row_info.width = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
-  row_info.rowbytes = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
-  row_info.color_type = data[8];
-  row_info.bit_depth = data[9];
-
-  switch (row_info.color_type) {
-      case PNG_COLOR_TYPE_GRAY:
-          row_info.channels = 1;
-          break;
-      case PNG_COLOR_TYPE_PALETTE:
-          row_info.channels = 1;
-          break;
-      case PNG_COLOR_TYPE_RGB:
-          row_info.channels = 3;
-          break;
-      case PNG_COLOR_TYPE_RGB_ALPHA:
-          row_info.channels = 4;
-          break;
-      case PNG_COLOR_TYPE_GRAY_ALPHA:
-          row_info.channels = 2;
-          break;
-      default:
-          row_info.channels = 1;
-          break;
-  }
-
   // Initialize variables for png_read_rows using fuzzer data
   png_bytepp row = nullptr;
   png_bytepp display_row = nullptr;
