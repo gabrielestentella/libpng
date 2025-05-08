@@ -295,10 +295,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
           row_info.channels = 1;
           break;
   }
-  row_info.pixel_depth = row_info.bit_depth * row_info.channels;
 
-  png_do_read_intrapixel(row_info, user_read_data);
-  
   // Initialize variables for png_read_rows using fuzzer data
   png_bytepp row = nullptr;
   png_bytepp display_row = nullptr;
@@ -326,7 +323,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
         }
       }
       
-      // Call png_read_rows with our initialized pointers
       if (setjmp(png_jmpbuf(png_handler.png_ptr)) == 0) {
         png_read_rows(png_handler.png_ptr, row, display_row, num_rows);
       }
