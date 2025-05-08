@@ -121,9 +121,10 @@ void apply_random_transforms(png_structp png_ptr, uint32_t seed) {
   if (dis(gen)) png_set_strip_alpha(png_ptr);
   if (dis(gen)) png_set_invert_mono(png_ptr);
   if (dis(gen)) png_set_bgr(png_ptr);
+  if (dis(gen)) png_set_swap_alpha(png_ptr);
 }
 
-// Test simplified read API
+// Test simplified read API with colormap and gamma variations
 int test_simplified_read(const uint8_t* data, size_t size, uint32_t seed) {
   png_image image;
   memset(&image, 0, sizeof(image));
@@ -136,10 +137,34 @@ int test_simplified_read(const uint8_t* data, size_t size, uint32_t seed) {
 
   // Randomly choose format and transformations
   std::mt19937 gen(seed);
-  std::uniform_int_distribution<> dis(0, 1);
-  image.format = PNG_FORMAT_RGBA;
-  if (dis(gen)) image.format |= PNG_FORMAT_FLAG_LINEAR;
-  if (dis(gen)) image.format |= PNG_FORMAT_FLAG_COLORMAP;
+  std::uniform_int_distribution<> dis(0, 3);
+  int format_choice = dis(gen);
+
+  // Vary format to trigger colormap and different encodings
+  switch (format_choice) {
+    case 0:
+      image.format = PNG_FORMAT_GRAY | PNG_FORMAT_FLAG_COLORMAP;
+      break;
+    case 1:
+      image.format = PNG_FORMAT_GA | PNG_FORMAT_FLAG_COLORMAP;
+      break;
+    case 2:
+      image.format = PNG_FORMAT_RGB | PNG_FORMAT_FLAG_COLORMAP;
+      break;
+    case 3:
+      image.format = PNG_FORMAT_RGBA;
+      if (dis(gen)) image.format |= PNG_FORMAT_FLAG_LINEAR;
+      break;
+  }
+
+  // Randomly set gamma to trigger set_file_encoding
+  if (dis(gen)) {
+    png_set_gAMA(image.opaque->png_ptr, image.opaque->info_ptr, 0.45455); // sRGB
+  } else if (dis(gen)) {
+    png_set_gAMA(image.opaque->png_ptr, image.opaque->info_ptr, 1.0); // Linear
+  } else {
+    png_set_gAMA(image.opaque->png_ptr, image.opaque->info_ptr, 0.8); // Custom
+  }
 
   std::vector<png_byte> buffer(PNG_IMAGE_SIZE(image));
   std::vector<png_byte> colormap;
@@ -154,6 +179,24 @@ int test_simplified_read(const uint8_t* data, size_t size, uint32_t seed) {
   }
 
   png_image_free(&image);
+  return 0;
+}
+
+// Test png_read_png to cover png_free_data
+int test_png_read_png(PngObjectHandler& png_handler, uint32_t seed) {
+  if (setjmp(png_jmpbuf(png_handler.png_ptr))) {
+    PNG_CLEANUP
+    return 0;
+  }
+
+  apply_random_transforms(png_handler.png_ptr, seed);
+  png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
+
+#ifdef PNG_INFO_IMAGE_SUPPORTED
+  png_read_png(png_handler.png_ptr, png_handler.info_ptr,
+               PNG_TRANSFORM_EXPAND | PNG_TRANSFORM_GRAY_TO_RGB, nullptr);
+#endif
+
   return 0;
 }
 
@@ -249,6 +292,14 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     return 0;
   }
 
+    // Enable MNG intrapixel differencing for RGB/RGBA
+#ifdef PNG_MNG_FEATURES_SUPPORTED
+  if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
+    png_handler.png_ptr->mng_features_permitted |= PNG_FLAG_MNG_FILTER_64;
+    png_handler.png_ptr->filter_type = PNG_INTRAPIXEL_DIFFERENCING;
+  }
+#endif
+
   // Apply random transformations
   apply_random_transforms(png_handler.png_ptr, seed);
 
@@ -256,9 +307,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
  
   png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
 
-  png_handler.row_ptr = png_malloc(
-      png_handler.png_ptr, png_get_rowbytes(png_handler.png_ptr, 
-                                            png_handler.info_ptr));
+  // Choose reading method randomly
+  int read_method = dis(gen);
+  if (read_method == 0) { // Use png_read_row
+    png_handler.row_ptr = png_malloc(
+        png_handler.png_ptr, png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr));
+    if (!png_handler.row_ptr) {
+      PNG_CLEANUP
+      return 0;
+    }
 
   for (int pass = 0; pass < passes; ++pass) {
     for (png_uint_32 y = 0; y < height; ++y) {
@@ -266,14 +323,20 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
                    static_cast<png_bytep>(png_handler.row_ptr), nullptr);
     }
   }
-
-  // Test png_read_image
-  if (width * height < 1000000) { // Limit size for performance
+  } else if (read_method == 1) { // Use png_read_rows
     std::vector<png_bytep> rows(height);
+    png_size_t rowbytes = png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr);
     for (png_uint_32 y = 0; y < height; ++y) {
-      rows[y] = static_cast<png_bytep>(png_malloc(png_handler.png_ptr,
-          png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr)));
+      rows[y] = static_cast<png_bytep>(png_malloc(png_handler.png_ptr, rowbytes));
+      if (!rows[y]) {
+        for (png_uint_32 i = 0; i < y; ++i) {
+          png_free(png_handler.png_ptr, rows[i]);
+        }
+        PNG_CLEANUP
+        return 0;
+      }
     }
+
     if (setjmp(png_jmpbuf(png_handler.png_ptr))) {
       for (png_uint_32 y = 0; y < height; ++y) {
         png_free(png_handler.png_ptr, rows[y]);
@@ -281,12 +344,50 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
       PNG_CLEANUP
       return 0;
     }
+
+    png_uint_32 rows_to_read = height / 2 + 1; // Read partial chunks
+    for (png_uint_32 y = 0; y < height; y += rows_to_read) {
+      png_uint_32 num_rows = std::min(rows_to_read, height - y);
+      png_read_rows(png_handler.png_ptr, rows.data() + y, nullptr, num_rows);
+    }
+
+    for (png_uint_32 y = 0; y < height; ++y) {
+      png_free(png_handler.png_ptr, rows[y]);
+    }
+  } else { // Use png_read_image
+    std::vector<png_bytep> rows(height);
+    png_size_t rowbytes = png_get_rowbytes(png_handler.png_ptr, png_handler.info_ptr);
+    for (png_uint_32 y = 0; y < height; ++y) {
+      rows[y] = static_cast<png_bytep>(png_malloc(png_handler.png_ptr, rowbytes));
+      if (!rows[y]) {
+        for (png_uint_32 i = 0; i < y; ++i) {
+          png_free(png_handler.png_ptr, rows[i]);
+        }
+        PNG_CLEANUP
+        return 0;
+      }
+    }
+
+    if (setjmp(png_jmpbuf(png_handler.png_ptr))) {
+      for (png_uint_32 y = 0; y < height; ++y) {
+        png_free(png_handler.png_ptr, rows[y]);
+      }
+      PNG_CLEANUP
+      return 0;
+    }
+
     png_read_image(png_handler.png_ptr, rows.data());
+
     for (png_uint_32 y = 0; y < height; ++y) {
       png_free(png_handler.png_ptr, rows[y]);
     }
   }
 
+  // Test png_read_png to cover png_free_data
+  if (dis(gen)) {
+    test_png_read_png(png_handler, seed);
+  }
+  
   png_read_end(png_handler.png_ptr, png_handler.end_info_ptr);
 
   PNG_CLEANUP
