@@ -62,8 +62,8 @@ $CXX $CXXFLAGS -std=c++11 \
      -DPNG_WRITE_bKGD_SUPPORTED \
      -DPNG_WRITE_hIST_SUPPORTED \
      -DPNG_WRITE_CUSTOMIZE_COMPRESSION_SUPPORTED \
-     $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
-     -o $OUT/libpng_write_fuzzer \
+     $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer2.cc \
+     -o $OUT/libpng_write_fuzzer2 \
      -lFuzzingEngine .libs/libpng16.a -lz
 
 ################################################################################
@@ -76,7 +76,7 @@ find $SRC/libpng -name "*.png" | grep -v crashers | \
      xargs zip -q $OUT/libpng_unknown_chunk_fuzzer_seed_corpus.zip
 
 find $SRC/libpng -name "*.png" | grep -v crashers | \
-     xargs zip -q $OUT/libpng_write_fuzzer_seed_corpus.zip
+     xargs zip -q $OUT/libpng_write_fuzzer2_seed_corpus.zip
 
 cp $SRC/libpng/contrib/oss-fuzz/*.dict \
    $SRC/libpng/contrib/oss-fuzz/*.options $OUT/
