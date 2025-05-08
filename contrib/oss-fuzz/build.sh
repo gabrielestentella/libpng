@@ -22,6 +22,8 @@
 # 3. Build zlib alongside libpng
 ################################################################################
 
+export CXXFLAGS="$CXXFLAGS -DPNG_SIMPLIFIED_READ_SUPPORTED -DPNG_SIMPLIFIED_WRITE_SUPPORTED"
+
 # Disable logging via library build configuration control.
 cat scripts/pnglibconf.dfa | \
   sed -e "s/option STDIO/option STDIO disabled/" \
@@ -48,6 +50,24 @@ $CXX $CXXFLAGS -std=c++11 -I. \
      -o $OUT/libpng_unknown_chunk_fuzzer \
      -lFuzzingEngine .libs/libpng16.a -lz
 
+# build libpng_write_fuzzer.
+$CXX $CXXFLAGS -std=c++11 -I. \
+     -DPNG_INTERNAL \
+     -DPNG_WRITE_SUPPORTED \
+     -DPNG_WRITE_TRANSFORMS_SUPPORTED \
+     -DPNG_WRITE_TEXT_SUPPORTED \
+     -DPNG_WRITE_iCCP_SUPPORTED \
+     -DPNG_WRITE_tIME_SUPPORTED \
+     -DPNG_WRITE_pHYs_SUPPORTED \
+     -DPNG_WRITE_sBIT_SUPPORTED \
+     -DPNG_WRITE_sCAL_SUPPORTED \
+     -DPNG_WRITE_gAMA_SUPPORTED \
+     -DPNG_WRITE_bKGD_SUPPORTED \
+     -DPNG_WRITE_hIST_SUPPORTED \
+     $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
+     -o $OUT/libpng_write_fuzzer \
+     -lFuzzingEngine .libs/libpng16.a -lz
+
 # add seed corpus.
 find $SRC/libpng -name "*.png" | grep -v crashers | \
      xargs zip $OUT/libpng_read_fuzzer_seed_corpus.zip
@@ -55,6 +75,10 @@ find $SRC/libpng -name "*.png" | grep -v crashers | \
 # add seed corpus.
 find $SRC/libpng -name "*.png" | grep -v crashers | \
      xargs zip $OUT/libpng_unknown_chunk_fuzzer_seed_corpus.zip
+
+# add seed corpus.
+find $SRC/libpng -name "*.png" | grep -v crashers | \
+     xargs zip $OUT/libpng_write_fuzzer_seed_corpus.zip
 
 cp $SRC/libpng/contrib/oss-fuzz/*.dict \
      $SRC/libpng/contrib/oss-fuzz/*.options $OUT/
