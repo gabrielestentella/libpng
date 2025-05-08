@@ -58,12 +58,14 @@ $CXX $CXXFLAGS -std=c++11 -I. \
      -DPNG_WRITE_TEXT_SUPPORTED \
      -DPNG_WRITE_iCCP_SUPPORTED \
      -DPNG_WRITE_tIME_SUPPORTED \
+     -DPNG_tIME_SUPPORTED \ # Explicitly add this for png_convert_from_time_t
      -DPNG_WRITE_pHYs_SUPPORTED \
      -DPNG_WRITE_sBIT_SUPPORTED \
      -DPNG_WRITE_sCAL_SUPPORTED \
      -DPNG_WRITE_gAMA_SUPPORTED \
      -DPNG_WRITE_bKGD_SUPPORTED \
      -DPNG_WRITE_hIST_SUPPORTED \
+     -DPNG_WRITE_CUSTOMIZE_COMPRESSION_SUPPORTED \ # Crucial for compression functions and Z_* constants visibility via those code paths
      $SRC/libpng/contrib/oss-fuzz/libpng_write_fuzzer.cc \
      -o $OUT/libpng_write_fuzzer \
      -lFuzzingEngine .libs/libpng16.a -lz
