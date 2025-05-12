@@ -117,10 +117,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
   std::vector<png_bytep> rows(img.height);
   
-  if (rowbytes > 0 && rowbytes <= (1 << 20)) {
-    for (png_uint_32 i = 0; i < img.height; ++i)
-      rows[i] = (png_bytep)&pixels[i * rowbytes];
-  }
+  for (png_uint_32 i = 0; i < img.height; ++i)
+    rows[i] = (png_bytep)&pixels[i * rowbytes];
+  
 
   //If Adam7, finish setup
   if (interlace == PNG_INTERLACE_ADAM7) {
@@ -128,13 +127,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   }
 
   //Step 9: choose pass-by-pass or bulk write
-  if (next() & 1) {
-    for (uint32_t i = 0; i < img.height; ++i) {
-      png_write_row(png_ptr, rows[i]);
-    }
-  } else {
+  //if (next() & 1) {
+  //  for (uint32_t i = 0; i < img.height; ++i) {
+  //    png_write_row(png_ptr, rows[i]);
+  //  }
+  //} else {
     png_write_image(png_ptr, rows.data());
-  }
+  //}
 
   png_write_end(png_ptr, info_ptr);
   png_destroy_write_struct(&png_ptr, &info_ptr);
