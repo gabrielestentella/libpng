@@ -29,66 +29,119 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   for (size_t i = 0; i < pixel_bytes; ++i) 
     pixels[i] = next();   //random initialization
 
-  //Step 3: set up PNG struct and functions
+  //Step 3: Create write and info struct
   png_structp png_ptr = png_create_write_struct(
-    PNG_LIBPNG_VER_STRING,  //user_png_ver
-    nullptr,                //error_ptr
-    nullptr,                //error_fn
-    nullptr                 //warn_fn
+    PNG_LIBPNG_VER_STRING, 
+    nullptr,
+    nullptr, 
+    nullptr
   );
   if (!png_ptr) return 0;
-  png_infop info_ptr  = png_create_info_struct(png_ptr);
-  if (!info_ptr) { png_destroy_write_struct(&png_ptr, nullptr); return 0; }
 
-  //set up clean up when error
+  png_infop info_ptr = png_create_info_struct(png_ptr);
+  if (!info_ptr) { 
+    png_destroy_write_struct(&png_ptr, nullptr);
+    return 0;
+  }
+
+  //set up guard in case of error
   if (setjmp(png_jmpbuf(png_ptr))) {
     png_destroy_write_struct(&png_ptr, &info_ptr);
     return 0;
   }
 
+  //tiny ring-buffer sink (32-63 bytes) to trigger flush paths
+  struct Sink { std::vector<uint8_t> buf; };
+  Sink sink{ std::vector<uint8_t>(32 + (next() & 31)) };
+
   //modify how png struct is written by default
   //(we discard the bytes since we dont really care what happens to them)
   png_set_write_fn(
     png_ptr, 
-    nullptr,
-    [](png_structp, png_bytep, png_size_t) {}, //actual write function
+    &sink,
+    [](png_structp, png_bytep, png_size_t) {}, // drop bytes 
     nullptr
   );
 
-  //Step 4: setting up IHDR header 
-  //extra setters could be used to set 
-  //a filter type and a compression type
-  int color_type = (img.format == PNG_FORMAT_RGBA) ?
-                      PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB;
+  //Step 4: Set up randomized interlace (Adam7)
+  int interlace = (next() & 1)
+    ? PNG_INTERLACE_ADAM7
+    : PNG_INTERLACE_NONE;
+
+  //Step 5: Set Up header
   png_set_IHDR(
     png_ptr, 
     info_ptr,
     img.width, 
-    img.height, 
-    8, //bit depth
-    color_type,
-    PNG_INTERLACE_NONE,
+    img.height,
+    8, // bit-depth
+    PNG_COLOR_TYPE_RGBA, //format matches img.format
+    interlace,
     PNG_COMPRESSION_TYPE_BASE,
     PNG_FILTER_TYPE_BASE
   );
 
 
-  //reshaping image pixels to sets of rows
-  size_t rowbytes = (img.format == PNG_FORMAT_RGBA ?
-                      img.width * 4 : img.width * 3);
-  std::vector<png_bytep> rows(img.height);
-  for (png_uint_32 y = 0; y < img.height; ++y)
-    rows[y] = (png_bytep)&pixels[y * rowbytes];
+  //Step 6: Set up filter mask & compression level
 
-  //Step 5: actually writing the image (i.e. dropping the bytes)
-  //and destroying the struct
+  //0b111 mask :
+  //Sub: 1
+  //Up: 2
+  //Avg: 4
+  unsigned filter_mask = (next() & 7)
+    ? PNG_ALL_FILTERS
+    : PNG_NO_FILTERS;
+  png_set_filter(png_ptr, PNG_FILTER_TYPE_BASE, filter_mask);
+  png_set_compression_level(png_ptr, next() % 10);  // 0-9
+
+  //Step 7: Optional colour-space chunks for non-palette
+  if (next() & 1) {
+  if (next() & 1) {
+    png_set_sRGB(
+      png_ptr, 
+      info_ptr,
+      PNG_sRGB_INTENT_PERCEPTUAL
+    );
+  } else {
+    png_set_gAMA_fixed(
+      png_ptr, 
+      info_ptr, 
+      45455 //pretty much the default gamma
+    );  // gama ~ 2.2
+  }
+  }
+
+  //Step 8: Write info & image data
   png_write_info(png_ptr, info_ptr);
-  png_write_image(png_ptr, rows.data());
-  png_write_end  (png_ptr, info_ptr);
+
+  size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+  std::vector<png_bytep> rows(img.height);
+  
+  if (rowbytes > 0 && rowbytes <= (1 << 20)) {
+    for (png_uint_32 i = 0; i < img.height; ++i)
+      rows[i] = (png_bytep)&pixels[i * rowbytes];
+  }
+
+  //If Adam7, finish setup
+  if (interlace == PNG_INTERLACE_ADAM7) {
+    png_set_interlace_handling(png_ptr);
+  }
+
+  //Step 9: choose pass-by-pass or bulk write
+  if (next() & 1) {
+    for (uint32_t i = 0; i < img.height; ++i) {
+      png_write_row(png_ptr, rows[i]);
+    }
+  } else {
+    png_write_image(png_ptr, rows.data());
+  }
+
+  png_write_end(png_ptr, info_ptr);
   png_destroy_write_struct(&png_ptr, &info_ptr);
 
 
-  //now try to write to memory (risky but increases coverage)
+  //Risky extra coverage
+  //Step 10:  try to write to memory
   png_bytep out_buf = nullptr;
   png_alloc_size_t out_size = 0;
   png_image_write_to_memory(
