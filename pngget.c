@@ -716,7 +716,7 @@ png_get_sRGB(png_const_structrp png_ptr, png_const_inforp info_ptr,
 #ifdef PNG_iCCP_SUPPORTED
 png_uint_32 PNGAPI
 png_get_iCCP(png_const_structrp png_ptr, png_inforp info_ptr,
-    png_charpp name, int *compression_type,
+    png_charpp *name, int *compression_type,
     png_bytepp profile, png_uint_32 *proflen)
 {
    png_debug1(1, "in %s retrieval function", "iCCP");
@@ -1076,7 +1076,7 @@ png_get_sCAL(png_const_structrp png_ptr, png_const_inforp info_ptr,
 #  endif /* FLOATING POINT */
 png_uint_32 PNGAPI
 png_get_sCAL_s(png_const_structrp png_ptr, png_const_inforp info_ptr,
-    int *unit, png_charpp width, png_charpp height)
+    int *unit, png_charpp *width, png_charpp *height)
 {
    png_debug1(1, "in %s retrieval function", "sCAL(str)");
 
@@ -1258,7 +1258,7 @@ png_get_tRNS(png_const_structrp png_ptr, png_inforp info_ptr,
 #ifdef PNG_STORE_UNKNOWN_CHUNKS_SUPPORTED
 int PNGAPI
 png_get_unknown_chunks(png_const_structrp png_ptr, png_inforp info_ptr,
-    png_unknown_chunkpp unknowns)
+    png_unknown_chunkpp *unknowns)
 {
    if (png_ptr != NULL && info_ptr != NULL && unknowns != NULL)
    {
