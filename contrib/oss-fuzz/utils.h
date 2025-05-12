@@ -28,6 +28,7 @@ struct PngObjectHandler {
     delete buf_state;
   }
 };
+/** End of code taken from libpng_read_fuzzer.cc **/
 
 /** NEW: Test getters**/
 void test_getters (PngObjectHandler *png_handler) {

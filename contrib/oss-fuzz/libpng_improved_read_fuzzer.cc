@@ -52,7 +52,7 @@ void* limited_malloc(png_structp, png_alloc_size_t size) {
   // to allocate a large amount. This allocator used to be in the Chromium
   // version of this fuzzer.
   // This number is chosen to match the default png_user_chunk_malloc_max.
-  if (size > 4000000) // Reduced the threshold for tighter control
+  if (size > 8000000)
     return nullptr;
 
   return malloc(size);
@@ -264,7 +264,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   }
 
   // This is going to be too slow.
-  if (width && height > 50000000 / width) { // Reduced the Threshold for speed.
+  if (width && height > 100000000 / width) {
     PNG_CLEANUP
     return 0;
   }
