@@ -111,13 +111,27 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   }
   }
 
-  //If Adam7, finish setup
-  if (interlace == PNG_INTERLACE_ADAM7) {
-    png_set_interlace_handling(png_ptr);
-  }
-
-  //Step 8: Write info & image data
   png_write_info(png_ptr, info_ptr);
+
+  /* Adam-7 scheduling may change the per-row byte count,
+     so enable it *before* you ask for rowbytes. */
+  unsigned passes = 1;
+  if (interlace == PNG_INTERLACE_ADAM7)
+      passes = png_set_interlace_handling(png_ptr);
+
+  /* Now this is the **final** size libpng will copy for each row */
+  const png_uint_32 rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+  if (rowbytes == 0 || rowbytes > (1 << 20))  /* 1 MiB sanity limit */
+      return 0;
+
+  /* Fresh slab + row table sized to the real rowbytes              */
+  std::vector<uint8_t> slab(img.height * rowbytes);
+  std::vector<png_bytep> rows(img.height);
+  for (png_uint_32 y = 0; y < img.height; ++y) {
+    rows[y] = &slab[y * rowbytes];
+    for (png_uint_32 x = 0; x < rowbytes; ++x)
+      slab[y * rowbytes + x] = next();      /* fill with fuzz data */
+  }
 
   size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
   std::vector<png_bytep> rows(img.height);
@@ -125,15 +139,15 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   for (png_uint_32 i = 0; i < img.height; ++i)
     rows[i] = (png_bytep)&pixels[i * rowbytes];
   
-  
+
   //Step 9: choose pass-by-pass or bulk write
-  //if (next() & 1) {
-  //  for (uint32_t i = 0; i < img.height; ++i) {
-  //    png_write_row(png_ptr, rows[i]);
-  //  }
-  //} else {
-    png_write_image(png_ptr, rows.data());
-  //}
+  if (next() & 1) {                     /* row-at-a-time path */
+    for (unsigned p = 0; p < passes; ++p)
+      for (png_uint_32 y = 0; y < img.height; ++y)
+          png_write_row(png_ptr, rows[y]);
+  } else {                             /* bulk path */
+      png_write_image(png_ptr, rows.data());
+  }
 
   png_write_end(png_ptr, info_ptr);
   png_destroy_write_struct(&png_ptr, &info_ptr);
