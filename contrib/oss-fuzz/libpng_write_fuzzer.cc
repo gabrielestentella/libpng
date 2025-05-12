@@ -133,11 +133,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
       slab[y * rowbytes + x] = next();      /* fill with fuzz data */
   }
 
-  size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
-  std::vector<png_bytep> rows(img.height);
+  //size_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+  //std::vector<png_bytep> rows(img.height);
   
-  for (png_uint_32 i = 0; i < img.height; ++i)
-    rows[i] = (png_bytep)&pixels[i * rowbytes];
+  //for (png_uint_32 i = 0; i < img.height; ++i)
+  //  rows[i] = (png_bytep)&pixels[i * rowbytes];
   
 
   //Step 9: choose pass-by-pass or bulk write
