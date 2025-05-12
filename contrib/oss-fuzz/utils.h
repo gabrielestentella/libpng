@@ -3,6 +3,32 @@
 
 #include "png.h"
 
+/** Code taken from libpng_read_fuzzer.cc **/
+struct BufState {
+  const uint8_t* data;
+  size_t bytes_left;
+};
+
+struct PngObjectHandler {
+  png_infop info_ptr = nullptr;
+  png_structp png_ptr = nullptr;
+  png_infop end_info_ptr = nullptr;
+  png_voidp row_ptr = nullptr;
+  BufState* buf_state = nullptr;
+
+  ~PngObjectHandler() {
+    if (row_ptr)
+      png_free(png_ptr, row_ptr);
+    if (end_info_ptr)
+      png_destroy_read_struct(&png_ptr, &info_ptr, &end_info_ptr);
+    else if (info_ptr)
+      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+    else
+      png_destroy_read_struct(&png_ptr, nullptr, nullptr);
+    delete buf_state;
+  }
+};
+
 /** NEW: Test getters**/
 void test_getters (PngObjectHandler *png_handler) {
   png_get_valid(png_handler->png_ptr, png_handler->info_ptr, PNG_INFO_tRNS);

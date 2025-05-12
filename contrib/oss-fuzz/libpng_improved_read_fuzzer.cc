@@ -36,31 +36,6 @@
     png_handler.end_info_ptr = nullptr; \
   }
 
-struct BufState {
-  const uint8_t* data;
-  size_t bytes_left;
-};
-
-struct PngObjectHandler {
-  png_infop info_ptr = nullptr;
-  png_structp png_ptr = nullptr;
-  png_infop end_info_ptr = nullptr;
-  png_voidp row_ptr = nullptr;
-  BufState* buf_state = nullptr;
-
-  ~PngObjectHandler() {
-    if (row_ptr)
-      png_free(png_ptr, row_ptr);
-    if (end_info_ptr)
-      png_destroy_read_struct(&png_ptr, &info_ptr, &end_info_ptr);
-    else if (info_ptr)
-      png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
-    else
-      png_destroy_read_struct(&png_ptr, nullptr, nullptr);
-    delete buf_state;
-  }
-};
-
 void user_read_data(png_structp png_ptr, png_bytep data, size_t length) {
   BufState* buf_state = static_cast<BufState*>(png_get_io_ptr(png_ptr));
   if (length > buf_state->bytes_left) {
