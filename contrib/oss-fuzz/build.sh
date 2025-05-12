@@ -41,7 +41,6 @@ make -j$(nproc) libpng16.la
 # build libpng_write_fuzzer.
 $CXX $CXXFLAGS -std=c++11 -I. \
      -DPNG_INTERNAL \
-     -DPNG_WRITE_SUPPORTED \
      -DPNG_WRITE_TRANSFORMS_SUPPORTED \
      -DPNG_WRITE_iCCP_SUPPORTED \
      -DPNG_WRITE_tIME_SUPPORTED \
