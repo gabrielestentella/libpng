@@ -76,7 +76,7 @@ void* limited_malloc(png_structp, png_alloc_size_t size) {
   // to allocate a large amount. This allocator used to be in the Chromium
   // version of this fuzzer.
   // This number is chosen to match the default png_user_chunk_malloc_max.
-  if (size > 4000000)
+  if (size > 4000000) // Reduced the threshold for tighter control
     return nullptr;
 
   return malloc(size);
@@ -86,6 +86,7 @@ void default_free(png_structp, png_voidp ptr) {
   free(ptr);
 }
 
+/** NEW: Custom handler for unknown chunks**/
 static int user_chunk_callback(png_structp png_ptr, png_unknown_chunkp chunk) {
   static std::random_device rd;
   static std::mt19937 gen(rd());
@@ -106,7 +107,7 @@ static int user_chunk_callback(png_structp png_ptr, png_unknown_chunkp chunk) {
 
 static const int kPngHeaderSize = 8;
 
-// Helper to apply random transformations
+/** NEW: Helper to apply random transformations **/
 void apply_random_transforms(png_structp png_ptr, uint32_t seed) {
   std::mt19937 gen(seed);
   std::uniform_int_distribution<> dis(0, 1);
@@ -122,7 +123,7 @@ void apply_random_transforms(png_structp png_ptr, uint32_t seed) {
   if (dis(gen)) png_set_swap_alpha(png_ptr);
 }
 
-// Test simplified read API with colormap
+/** NEW:  Test simplified read API with colormap **/
 int test_simplified_read(const uint8_t* data, size_t size, uint32_t seed) {
   png_image image;
   memset(&image, 0, sizeof(image));
@@ -170,7 +171,7 @@ int test_simplified_read(const uint8_t* data, size_t size, uint32_t seed) {
   return 0;
 }
 
-// Test png_read_png to cover png_free_data
+/** NEW: Test png_read_png to cover png_free_data **/
 int test_png_read_png(PngObjectHandler& png_handler, uint32_t seed) {
   if (setjmp(png_jmpbuf(png_handler.png_ptr))) {
     PNG_CLEANUP
@@ -188,6 +189,7 @@ int test_png_read_png(PngObjectHandler& png_handler, uint32_t seed) {
   return 0;
 }
 
+/** NEW: Test getters**/
 void getFunctions (PngObjectHandler *png_handler) {
   png_get_valid(png_handler->png_ptr, png_handler->info_ptr, PNG_INFO_tRNS);
   png_get_rows(png_handler->png_ptr, png_handler->info_ptr);
@@ -287,7 +289,6 @@ void getFunctions (PngObjectHandler *png_handler) {
   png_get_palette_max(png_handler->png_ptr, png_handler->info_ptr);
 }
 
-// Entry point for LibFuzzer
 // Roughly follows the libpng book example:
 // http://www.libpng.org/pub/png/book/chapter13.html
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
@@ -301,6 +302,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     return 0;
   }
 
+  // Initialize the random generator
   uint32_t seed = size >= 4 ? *(uint32_t*)data : 0;
   std::mt19937 gen(seed);
   std::uniform_int_distribution<> dis(0, 2);
@@ -351,6 +353,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
     return 0;
   }
 
+/** NEW: Test Unknown chunks handling **/
 #ifdef PNG_READ_UNKNOWN_CHUNKS_SUPPORTED
   png_set_read_user_chunk_fn(png_handler.png_ptr, nullptr, user_chunk_callback);
   png_set_keep_unknown_chunks(png_handler.png_ptr, PNG_HANDLE_CHUNK_ALWAYS, nullptr, 0);
@@ -385,21 +388,18 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   }
 
   // This is going to be too slow.
-  if (width && height > 50000000 / width) {
+  if (width && height > 50000000 / width) { // Reduced the Threshold for speed.
     PNG_CLEANUP
     return 0;
   }
 
-// #ifdef PNG_MNG_FEATURES_SUPPORTED
-//   if (color_type == PNG_COLOR_TYPE_RGB || color_type == PNG_COLOR_TYPE_RGB_ALPHA) {
-//     png_set_mng_features(png_handler.png_ptr, PNG_FLAG_MNG_FILTER_64);
-//   }
-// #endif
-
+  // Randomly apply transformations
   apply_random_transforms(png_handler.png_ptr, seed);
   int passes = png_set_interlace_handling(png_handler.png_ptr);
+
   png_read_update_info(png_handler.png_ptr, png_handler.info_ptr);
 
+  /** NEW: Test for png_read_row **/
   int read_method = dis(gen);
   if (read_method == 0) { // Use png_read_row
     png_handler.row_ptr = png_malloc(
