@@ -111,6 +111,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   }
   }
 
+  //If Adam7, finish setup
+  if (interlace == PNG_INTERLACE_ADAM7) {
+    png_set_interlace_handling(png_ptr);
+  }
+
   //Step 8: Write info & image data
   png_write_info(png_ptr, info_ptr);
 
@@ -120,12 +125,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   for (png_uint_32 i = 0; i < img.height; ++i)
     rows[i] = (png_bytep)&pixels[i * rowbytes];
   
-
-  //If Adam7, finish setup
-  if (interlace == PNG_INTERLACE_ADAM7) {
-    png_set_interlace_handling(png_ptr);
-  }
-
+  
   //Step 9: choose pass-by-pass or bulk write
   //if (next() & 1) {
   //  for (uint32_t i = 0; i < img.height; ++i) {
