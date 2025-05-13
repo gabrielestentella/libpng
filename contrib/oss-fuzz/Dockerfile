@@ -19,6 +19,6 @@ RUN apt-get update && \
     apt-get install -y make autoconf automake libtool
 
 RUN git clone --depth 1 https://github.com/madler/zlib.git
-RUN git clone -b octav --depth 1 https://github.com/gabrielestentella/libpng.git
+RUN git clone -b improved-read-fuzzer --depth 1 https://github.com/gabrielestentella/libpng.git
 RUN cp libpng/contrib/oss-fuzz/build.sh $SRC
 WORKDIR libpng

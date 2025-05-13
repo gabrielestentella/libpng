@@ -24,10 +24,11 @@ The files are
  =========================  ==========   ================   ==========
  Dockerfile*                derived      2017, Glenn R-P    Apache 2.0
  build.sh                   derived      2017, Glenn R-P    Apache 2.0
- libpng_read_fuzzer.cc      derived      2017, Glenn R-P    Chromium
+ libpng_read_fuzzer.cc      derived      2017, Glenn R-P    Chromium (improved in our work)
  libpng_read_fuzzer.options original     2015, Chrome Devs  Chromium
  png.dict                   original     2015, Chrome Devs  Chromium
  README.txt (this file)     original     2017, Glenn R-P    libpng
+ utils.h                    new          2025, Octave C     -
 
  * Dockerfile is a copy of the file used by oss-fuzz. build.sh,
    png.dict and libpng_read_fuzzer.* are the actual files used by oss-fuzz,
