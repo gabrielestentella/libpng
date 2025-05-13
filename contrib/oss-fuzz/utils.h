@@ -82,7 +82,7 @@ void test_getters (PngObjectHandler *png_handler) {
   int compression_type;
   png_bytep profile;
   png_uint_32 proflen;
-  png_get_iCCP(png_handler->png_ptr, png_handler->info_ptr, &name, &compression_type, &profile, &proflen);
+  png_get_iCCP(png_handler->png_ptr, png_handler->info_ptr, name, &compression_type, &profile, &proflen);
   png_sPLT_tp spalettes;
   png_get_sPLT(png_handler->png_ptr, png_handler->info_ptr, &spalettes);
   png_uint_32 maxCLL, maxFALL, num_exif;
@@ -103,7 +103,7 @@ void test_getters (PngObjectHandler *png_handler) {
   double width_2, height_2;
   png_get_sCAL(png_handler->png_ptr, png_handler->info_ptr, &unit_type, &width_2, &height_2);
   png_charpp width_3, height_3;
-  png_get_sCAL_s(png_handler->png_ptr, png_handler->info_ptr, &unit_type, &width_3, &height_3);
+  png_get_sCAL_s(png_handler->png_ptr, png_handler->info_ptr, &unit_type, width_3, height_3);
   png_get_pHYs(png_handler->png_ptr, png_handler->info_ptr, &res_x, &res_y, &unit_type);
   png_colorp palette;
   png_get_PLTE(png_handler->png_ptr, png_handler->info_ptr, &palette, &unit_type);
@@ -117,7 +117,7 @@ void test_getters (PngObjectHandler *png_handler) {
   png_color_16p trans_color;
   png_get_tRNS(png_handler->png_ptr, png_handler->info_ptr, &trans_alpha, &unit_type, &trans_color);
   png_unknown_chunkpp entries;
-  png_get_unknown_chunks(png_handler->png_ptr, png_handler->info_ptr, &entries);
+  png_get_unknown_chunks(png_handler->png_ptr, png_handler->info_ptr, entries);
   png_get_rgb_to_gray_status(png_handler->png_ptr);
   png_get_user_chunk_ptr(png_handler->png_ptr);
   png_get_compression_buffer_size(png_handler->png_ptr);
