@@ -15,11 +15,10 @@
 ################################################################################
 
 FROM gcr.io/oss-fuzz-base/base-builder
-MAINTAINER glennrp@gmail.com
 RUN apt-get update && \
     apt-get install -y make autoconf automake libtool
 
 RUN git clone --depth 1 https://github.com/madler/zlib.git
-RUN git clone --depth 1 -b feature-david https://github.com/gabrielestentella/libpng.git
+RUN git clone -b write-fuzzer --depth 1 https://github.com/gabrielestentella/libpng.git
 RUN cp libpng/contrib/oss-fuzz/build.sh $SRC
 WORKDIR libpng

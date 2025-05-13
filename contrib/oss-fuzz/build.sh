@@ -22,13 +22,11 @@
 # 3. Build zlib alongside libpng
 ################################################################################
 
-export CXXFLAGS="$CXXFLAGS"
-
-
 # Disable logging via library build configuration control.
 cat scripts/pnglibconf.dfa | \
-  sed -e 's/option STDIO/option STDIO disabled/' \
-      -e 's/option WARNING /option WARNING disabled/' \
+  sed -e "s/option STDIO/option STDIO disabled/" \
+      -e "s/option WARNING /option WARNING disabled/" \
+      -e "s/option WRITE enables WRITE_INT_FUNCTIONS/option WRITE disabled/" \
 > scripts/pnglibconf.dfa.temp
 mv scripts/pnglibconf.dfa.temp scripts/pnglibconf.dfa
 
