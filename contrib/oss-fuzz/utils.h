@@ -78,7 +78,7 @@ void test_getters (PngObjectHandler *png_handler) {
   png_get_gAMA(png_handler->png_ptr, png_handler->info_ptr, &gamma_file);
   int file_srgb_intent;
   png_get_sRGB(png_handler->png_ptr, png_handler->info_ptr, &file_srgb_intent);
-  png_charpp name;
+  png_charp name;
   int compression_type;
   png_bytep profile;
   png_uint_32 proflen;
@@ -102,7 +102,7 @@ void test_getters (PngObjectHandler *png_handler) {
   png_get_sCAL_fixed(png_handler->png_ptr, png_handler->info_ptr, &unit_type, &width, &height);
   double width_2, height_2;
   png_get_sCAL(png_handler->png_ptr, png_handler->info_ptr, &unit_type, &width_2, &height_2);
-  png_charpp width_3, height_3;
+  png_charp width_3, height_3;
   png_get_sCAL_s(png_handler->png_ptr, png_handler->info_ptr, &unit_type, &width_3, &height_3);
   png_get_pHYs(png_handler->png_ptr, png_handler->info_ptr, &res_x, &res_y, &unit_type);
   png_colorp palette;
@@ -116,7 +116,7 @@ void test_getters (PngObjectHandler *png_handler) {
   png_bytep trans_alpha;
   png_color_16p trans_color;
   png_get_tRNS(png_handler->png_ptr, png_handler->info_ptr, &trans_alpha, &unit_type, &trans_color);
-  png_unknown_chunkpp entries;
+  png_unknown_chunkp entries;
   png_get_unknown_chunks(png_handler->png_ptr, png_handler->info_ptr, &entries);
   png_get_rgb_to_gray_status(png_handler->png_ptr);
   png_get_user_chunk_ptr(png_handler->png_ptr);
