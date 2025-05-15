@@ -2192,7 +2192,7 @@ PNG_EXPORT(157, void, png_set_sRGB_gAMA_and_cHRM, (png_const_structrp png_ptr,
 
 #ifdef PNG_iCCP_SUPPORTED
 PNG_EXPORT(158, png_uint_32, png_get_iCCP, (png_const_structrp png_ptr,
-    png_inforp info_ptr, png_charpp *name, int *compression_type,
+    png_inforp info_ptr, png_charpp name, int *compression_type,
     png_bytepp profile, png_uint_32 *proflen));
 #endif
 
@@ -2268,7 +2268,7 @@ PNG_FIXED_EXPORT(214, png_uint_32, png_get_sCAL_fixed,
 #endif
 PNG_EXPORT(169, png_uint_32, png_get_sCAL_s,
     (png_const_structrp png_ptr, png_const_inforp info_ptr, int *unit,
-    png_charpp *swidth, png_charpp *sheight));
+    png_charpp swidth, png_charpp sheight));
 
 PNG_FP_EXPORT(170, void, png_set_sCAL, (png_const_structrp png_ptr,
     png_inforp info_ptr, int unit, double width, double height))
@@ -2409,7 +2409,7 @@ PNG_EXPORT(175, void, png_set_unknown_chunk_location,
     (png_const_structrp png_ptr, png_inforp info_ptr, int chunk, int location));
 
 PNG_EXPORT(176, int, png_get_unknown_chunks, (png_const_structrp png_ptr,
-    png_inforp info_ptr, png_unknown_chunkpp *entries));
+    png_inforp info_ptr, png_unknown_chunkpp entries));
 #endif
 
 /* Png_free_data() will turn off the "valid" flag for anything it frees.
